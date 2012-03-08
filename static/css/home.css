@@ -1,0 +1,449 @@
+* { margin:0
+}
+html, body {
+        font-weight:100;
+	height: 100%;
+}
+b {
+        font-weight: bold;
+}
+.eventsSlideshow {
+	 text-align: center;
+	 height:100;
+	 width:100%;
+	 position:relative;
+	 overflow:hidden;
+}
+.inputURL {
+        color: #781351;
+        background: #eeeeee;
+        border: 1px solid #AAAAAA;
+        font-family: helvetica;
+        font-size: 12;
+        height: 20px;
+	width: 300px;
+        position: absolute;
+        bottom: 1;
+        left: auto;
+        right: 1px;
+}
+.footerLogo {
+	float:right;
+	margin-right: 5px;
+	color: #999;
+	height: 75px;
+}
+.wrapper {
+	 min-height: 100%;
+	 height: auto !important;
+	 height: 100%;
+	 margin: 0 auto -75px; /* the bottom margin is the negative value of the footer's height */
+}
+.frontWrapper {
+	 min-height: 100%;
+	 height: auto !important;
+	 height: 100%;
+	 margin: 0 auto -125px; /* the bottom margin is the negative value of the footer's height */
+}
+.push {
+	 height: 75px; /* .push must be the same height as .footer */
+}
+.frontPush {
+	 height: 125px; /* .push must be the same height as .frontfooter */
+}
+.frontFooterContainer {
+          margin: 00 auto;
+	  width: 975;
+	  background-color: #353535;
+	  color: #FFF;
+	  height: 125px;
+}
+.footerContainer {
+	margin: 0 auto;
+	width: 975;
+	background-color: #353535;
+	color: #FFF;
+	height: 75px;
+}
+.floatingDiv {
+        background: #000000;
+        font-family: helvetica;
+        color: 999999;
+        height: 22px;
+        width: 100%;
+        position: fixed;
+        left: 15px;
+	right: 15px;
+        bottom: 0px;
+}        
+.floatingStar {
+        font-family: helvetica;
+        color: 999999;
+        height: 22px;
+        width: 50px;
+        position: fixed;
+        left: 30px;
+}        
+.formElement {
+          color: #777777;
+          background: #DDDDDD;
+          border: 5px solid #DDDDDD;
+          font-family: helvetica;
+          font-size: 20;
+}
+.createFormElement {
+          color: #777777;
+          background: #EEE;
+          border: 10px solid #EEE;
+          font-family: helvetica;
+          font-size: 40;
+}
+.joinButton {
+          color: #ffffff;
+          background: #5CADFF;
+          font-weight: bold;
+	  border: 10px solid #5CADFF;
+          font-family: helvetica;
+          font-size: 20;
+	   
+}
+.signinButton {
+          margin:25 auto;
+	  font-size: 24pt;
+	  width: 200;
+	  height: 60;
+	  text-align: center;
+	  vertical-align:bottom;
+	  color: #FFF;
+	  background: #133783;
+          font-weight: bold;
+	  border: 10px solid #133783;
+          font-family: helvetica;
+          font-size: 24pt;
+	   
+}
+.eventInfo {
+	  //border: 2px solid red;
+	  width: 800;
+	  height: 105;
+	  text-align: left;
+          font-family: helvetica;
+	  line-height: 140%;
+	  letter-spacing: -1px;
+	  font-style:normal;
+	  font-size:30pt;
+	  color: #5CADFF;
+}
+.eventInfoBox {
+	  background: #EEE;
+	  padding: 25px;
+	  height: 110;
+	  margin: 0;
+}
+.editButton {
+          text-align: center;
+	  height: 30px;
+	  width: 60px;
+	  color: #FFF;
+	  font-weight: bold;
+	  background: #5CADFF;
+          border: 5px solid #5CADFF;
+          font-family: helvetica;
+          font-size: 14;
+}
+.resetButton {
+          color: #FFF;
+          background: #EE4D4D;
+	  border: 15px solid #EE4D4D;
+	  font-family: helvetica;
+          font-size: 20;
+    	  font-style: bold;
+    	  margin: 20 2 0 0;
+	  font-weight: bold;
+}
+.createButton {
+          color: #FFF;
+          background-color: #F90;
+	  border: 15px solid #F90;
+	  font-family: helvetica;
+          font-size: 20;
+	  margin: 20 2 0 0;
+	  font-weight: bold;
+}
+.eventList {
+	  height: 500;
+	  overflow-x: hidden; 
+	  overflow-y: auto;
+}
+.faqList {
+	  height: 500;
+	  overflow-x:hidden; 
+	  overflow-y:auto;
+}
+.commentList {
+	  margin-top:20px;
+	  height: 350;
+	  overflow-x:hidden; 
+	  overflow-y:auto;
+}
+.commentPicture {
+	  background: #FFF;
+	  padding: 1px;
+	  margin-right: 10px;
+	  float: left;
+}
+.startButton {
+          color: #fffff;
+          //background: #3366CC;
+          //border: 5px solid #3366CC;
+          //background: #FF5C33;
+          //border: 5px solid #FF5C33;
+          //background: #304764;
+	  //border: 30px solid #304764;
+          //background: #33CC33;
+          //border: 30px solid #33CC33;
+          #background: #BBBBBB;
+	  #border: 30px solid #BBBBBB;
+          background: #5CADFF;
+          border: 30px solid #5CADFF;
+          font-family: helvetica;
+          font-size: 20;
+}	      
+.browseButton {
+          color: #fffff;
+          //background: #3366CC;
+          //border: 5px solid #3366CC;
+          //background: #FF5C33;
+          //border: 5px solid #FF5C33;
+          //background: #304764;
+	  //border: 30px solid #304764;
+          //background: #33CC33;
+          //border: 30px solid #33CC33;
+          //background: #BBBBBB;
+	  //border: 30px solid #BBBBBB;
+	  background: #33CC33;
+          border: 30px solid #33CC33;
+          font-family: helvetica;
+          font-size: 20;
+	   
+}
+.smallNotes {
+          font-family: helvetica;
+          font-size: 11pt;
+          color: #bbb;
+	  font-style: italic;
+	  text-align: left;
+          margin-top: 0px;
+}
+.ResultsText {
+	  font-family: helvetica;
+          font-size: 24pt;
+          color: #777777;
+          text-align: left;
+          margin-left: auto;
+	  margin-right: auto;
+	  border-bottom-color: #FFFFFF;
+	  border-bottom-style: solid;
+	  border-bottom-width: 1px;
+	  padding: 20px;
+}
+.ResultsText A:link {text-decoration: none;color: #666666;}
+.ResultsText A:visited {text-decoration: none;color: #888888;}
+.ResultsText A:active {text-decoration: none;color: #666666;}
+.ResultsText A:hover {text-decoration: none;color: #3399ff;}
+.topMenu {
+	  font-weight:100;
+	  margin-top: 20px;
+	  padding: 10px;
+	  float: left;
+	  letter-spacing: -.05em;
+	  font-family: georgia;
+          font-size: 16pt;
+          color: #777;
+	  text-align: left;
+          margin-left: auto;
+	  margin-right: auto;
+}
+.topMenu A:link { font-weight:100;text-decoration: none;color: #666666; }
+.topMenu A:visited { font-weight:100;text-decoration: none;color: #888888; }
+.topMenu A:active { font-weight:100;text-decoration: none;color: #666666; }
+.topMenu A:hover { font-weight:100;text-decoration: none;color: #3399ff; }
+
+.headline {
+          font-family: times, Times New Roman, times-roman, georgia, serif;
+	  color: #5cadff;
+	  padding: 0px 0px 6px 0px;
+	  font-size: 51px;
+	  line-height: 44px;
+	  letter-spacing: -2px;
+	  font-weight: bold;
+}
+P.blocktext {
+          font-family: times, Times New Roman, times-roman, georgia, serif;
+	  font-size: 18px;
+	  text-align: justify;
+	  text-justify: newspaper;
+          letter-spacing: 1px;margin-top: .5em; color: #666;
+          margin-left: auto;
+          margin-right: auto;
+          width: 600;
+          line-height: 150%;
+}
+.LogoTextMini {
+      font-family: arial;
+	  font-size: 30;
+	  font-weight: bold;
+	  letter-spacing: -.05em;
+	  color: #E70000;
+	  padding: 10px;
+}
+.LogoText {
+          font-family: georgia, bookman, serif;
+	  font-size: 100;
+	  letter-spacing: -.05em;
+	  font-style: italic;
+	  font-weight: bold;
+	  color: #666;
+	  padding: 10px;
+	  text-align: center;
+	  margin-left: auto;
+	  margin-right: auto;
+	  margin-top: 100
+	  
+}
+.PageHeaderLogo {
+        font-family: arial;
+        font-size: 30;
+        font-weight: bold;
+        letter-spacing: -.05em;
+        color: #E70000;
+        padding: 5 px;
+        text-align: right;
+        width: 975px;
+        //margin-left: auto;
+        //margin-right: auto;   
+    
+}
+.eventHeader {
+      text-align: left;
+	  font-family: helvetica;
+	  font-size: 45;
+	  color: #555;
+	  padding: 10px;
+	  font-weight:bold;
+	  margin-bottom: 25px;
+}
+.HeaderText {
+          //font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+	  font-family: helvetica;
+	  font-size: 45;
+	  color: 666666;
+	  padding: 10px;
+	  margin-right: 0;
+	  //font-style: italic;
+}
+.divRight {
+      position:relative;
+      top: -150px;
+      margin: 10px;
+      width: 400px; 
+}
+
+.divCenter {
+    width: 2%;
+    background: white; 
+}
+
+.divLeft {
+    width: 400px; 
+}
+.memberNumber {
+	  font-family: helvetica;
+          font-size: 50pt;
+          font-weight: bold;
+	  color: #777777;
+}
+.memberNumberBrowse {
+	  margin-left: auto;
+	  margin-right: auto;
+	  font-family: helvetica;
+          font-size: 42pt;
+          font-weight: bold;
+	  color: #5CADFF;
+          vertical-align: middle;
+	  text-align: center;
+	  background-color: #FFF;
+	  height:80px;
+	  width: 60px;
+	  float:left;
+	  margin-right:20;
+}
+.tagLine{
+	font-family: georgia;
+	margin-top: 15px;
+	font-size: 80;
+}
+.Footer {
+          font-family: times, Times New Roman, times-roman, georgia, serif;
+          font-style: italic;
+	  letter-spacing: -1px;
+    	  font-size: 40;
+    	  color: 333333;
+    	  padding: 10px;
+    	  margin-right: 0;
+          margin-top: 75px;
+          font-color: '#aaaaaa';
+          text-align: center;
+          margin-left: auto;          
+}
+.frontFooter {
+          font-family: georgia, times, serif;
+          font-style: italic;
+	  font-size: 18;
+	  padding: 10px;
+	  margin-right: 0;
+          text-align: center;
+          font-color: '#aaaaaa';
+          text-align: center;
+          margin-left: auto;
+          margin-right: auto;
+          
+}
+.frontFooter A:link {text-decoration: none;color: #fff;}
+.frontFooter A:visited {text-decoration: none;color: #fff;}
+.frontFooter A:active {text-decoration: none;color: #fff;}
+.frontFooter A:hover {text-decoration: none;color: #3399ff;}
+
+A:link {text-decoration: none;color: #999;}
+A:visited {text-decoration: none;color: #999;}
+A:active {text-decoration: none;color: #999;}
+A:hover {text-decoration: none;color: #3399ff;}
+
+.bioHeader {
+          font-size: 24pt;
+	  //margin-bottom:10px;
+	  font-family: georgia;
+}
+.bioCopy {
+	  color: #555;
+          font-family: helvetica;
+	  font-size: 18pt;
+}
+.FAQHeader {
+	  font-size: 24pt;
+	  margin-bottom:5px;
+	  font-weight:bold;
+	  color: #5CADFF;
+}
+.FAQtext {
+	  font-family: helvetica;
+          font-size: 20pt;
+          color: #777777;
+          text-align: left;
+          margin-left: auto;
+	  margin-right: auto;
+	  border-bottom-color: #FFFFFF;
+	  border-bottom-style: solid;
+	  border-bottom-width: 1px;
+	  padding: 20px;
+}
