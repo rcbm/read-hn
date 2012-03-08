@@ -32,23 +32,13 @@ from models import *
 class MainPage(webapp.RequestHandler):
     def get(self):
         if users.get_current_user():
-            self.response.out.write('<html><head></head><body>penus</body></html>')
+            linktext = 'Log Out'
+            
+            #now = str(datetime.now()).split('.')[0]
+            #stories = db.GqlQuery("SELECT * FROM Node WHERE datetime > DATETIME('%s') AND active=True LIMIT 100" % now)
+            self.response.out.write(template.render('static/index.html', { 'user': users.get_current_user(),
+                                                                           'linktext': linktext}))
+
         else:
             self.redirect(users.create_login_url(self.request.uri))
-
-
-
-
-
-
-
-
-
-        
-        print 'PENUS'
-        #now = str(datetime.now()).split('.')[0]
-        #events = db.GqlQuery("SELECT * FROM Event WHERE datetime > DATETIME('%s') AND active=True LIMIT 100" % now)
-        #self.response.out.write(template.render('static/index.html', { 'linktext': self.linktext,
-        #                                                               'events': events }))
-        
-
+            
