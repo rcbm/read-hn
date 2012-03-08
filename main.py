@@ -28,7 +28,7 @@ from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
 from google.appengine.api import users
 from google.appengine.api import taskqueue
-#from models import *
+from models import *
 
 
 class MainPage(webapp.RequestHandler):
