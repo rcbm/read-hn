@@ -16,3 +16,8 @@ class node(db.Model):
     commentcount = db.IntegerProperty()
     parentid = db.IntegerProperty()
     
+class User(db.Model):
+    user = db.UserProperty(required=True)
+    user_id = db.StringProperty(required=True)
+    email = db.EmailProperty()
+    stories = db.ListProperty(db.Key)
