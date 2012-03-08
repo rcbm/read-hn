@@ -1,0 +1,6 @@
+.DS_Store
+*~
+*backup*
+*.pyc
+*#*
+*IMG_*
