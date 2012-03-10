@@ -31,6 +31,20 @@ from google.appengine.api import users
 from google.appengine.api import taskqueue
 from models import *
 
+class Upvote(webapp.RequestHandler):
+    def get(self):
+        
+        user = self.request.get("user")
+        post = self.request.get("key")
+        user = db.GqlQuery("SELECT * FROM User WHERE user = :1", user).fetch(1)
+        print user
+        #stories = stories.append(post)
+        #print stories
+        #stories.put()
+
+class Judge(webapp.RequestHandler):
+    def get(self):
+
 class MainPage(webapp.RequestHandler):
     def get(self):
         linktext = 'Log Out'
@@ -74,18 +88,3 @@ class Scrape(webapp.RequestHandler):
             self.redirect(users.create_login_url(self.request.uri))
         
         self.redirect('/')
-
-
-class Upvote(webapp.RequestHandler):
-    def get(self):
-        
-        self.redirect('/')
-        """
-        user = self.request.get("user")
-        post = self.request.get("key")
-        user = db.GqlQuery("SELECT * FROM User WHERE user = :1", user).fetch(1)
-        print user
-        #stories = stories.append(post)
-        #print stories
-        #stories.put()
-        """

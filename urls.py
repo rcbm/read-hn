@@ -8,7 +8,7 @@ from google.appengine.ext.webapp.util import run_wsgi_app
 
 application = webapp.WSGIApplication([('/', MainPage),
                                       ('/scrape', Scrape),
-                                      ('/upvote', Upvote)],
+                                      ('/vote', Judge)],
                                      debug=True)
 
 def main():
