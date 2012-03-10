@@ -44,7 +44,8 @@ class Upvote(webapp.RequestHandler):
 
 class Judge(webapp.RequestHandler):
     def get(self):
-
+        pass
+        
 class MainPage(webapp.RequestHandler):
     def get(self):
         linktext = 'Log Out'
