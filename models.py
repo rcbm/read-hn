@@ -46,6 +46,8 @@ class Node(db.Model):
     parentid = db.IntegerProperty()
 
 class Features(db.Model):
+    num_down = db.IntegerProperty()
+    num_up = db.IntegerProperty()
     #stories = db.ListProperty(db.Key)
     updated = db.DateTimeProperty(auto_now=True)
     unigram_dict = DictProperty(db.StringProperty)

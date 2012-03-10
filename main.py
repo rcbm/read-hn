@@ -48,7 +48,7 @@ class Judge(webapp.RequestHandler):
         # Strip punct and break down into unigrams
         unigrams = word_list = re.split('\s+', title)
         unigrams = [punct.sub("", w) for w in unigrams]
-        
+
         # Count unigrams
         uni_freq_dict = {}
         for word in unigrams:
@@ -73,16 +73,19 @@ class Judge(webapp.RequestHandler):
         user = db.GqlQuery("SELECT * FROM User WHERE user_id = '%s'" % users.get_current_user().user_id()).get()
 
         if not user.feature_profile:
-            feature = Features(unigram_dict = ngrams['uni'],
+            feature = Features(num_down = 1,
+                               unigram_dict = ngrams['uni'],
                                bigram_dict = ngrams['bi'])
             feature.put()
             user.feature_profile = feature.key()
             user.put()
         else:
             features = user.feature_profile
+            features.num_down += 1
+
+            # Increase counts in the dictionaries
             unidict = features.unigram_dict
             bidict = features.bigram_dict
-            
             for key in ngrams['uni']:
                 unidict[key] = unidict.get(key,0) + 1
             for key in ngrams['bi']:
