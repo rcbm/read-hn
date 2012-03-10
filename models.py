@@ -1,7 +1,7 @@
 from google.appengine.ext import db
 from google.appengine.api import users
 
-class node(db.Model):
+class Node(db.Model):
     id = db.IntegerProperty(required=True)
     url = db.StringProperty(required=True)
     title = db.StringProperty(required=True)
@@ -10,7 +10,7 @@ class node(db.Model):
     points = db.IntegerProperty(required=True)
     type = db.IntegerProperty(required=True)
     points = db.IntegerProperty(required=True)
-    timestamp = db.DateTimeProperty(auto_now_add=False)
+    timestamp = db.DateTimeProperty()
     created = db.DateTimeProperty(auto_now_add=True)
     updated = db.DateTimeProperty(auto_now=True)
     commentcount = db.IntegerProperty()

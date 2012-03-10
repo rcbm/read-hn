@@ -21,14 +21,15 @@ DONE
 import os
 import logging
 import datetime
+import json
+import urllib2
 from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
 from google.appengine.api import users
 from google.appengine.api import taskqueue
 from models import *
-
-
+    
 class MainPage(webapp.RequestHandler):
     def get(self):
         if users.get_current_user():
