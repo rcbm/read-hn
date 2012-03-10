@@ -40,27 +40,37 @@ class Scrape(webapp.RequestHandler):
     def get(self):
         user = users.get_current_user()
         if user:    
-            response = urllib2.urlopen('http://api.ihackernews.com/new')
+            response = urllib2.urlopen('http://api.thriftdb.com/api.hnsearch.com/items/_search?&filter[fields][create_ts]=[NOW-24HOURS%20TO%20NOW]&sortby=create_ts+desc&limit=100&filter[fields][type]=submission&pretty_print=true')
             content = json.loads(response.read())
-            for i in content['items']:
-                commentCount = i['commentCount']
+            for item in content['results']:
+                i = item['item']
                 id = i['id']
+                type = i['type']
                 url = i['url']
-                title = i['title']
-                postedBy = i['postedBy']
-                points = i['points']
-                postedAgo = i['postedAgo']
-                scraped_content = Node( hn_id = id,
-                                        url = url,
-                                        title = title,
-                                        commentcount = commentCount,
-                                        username = postedBy,
-                                        points = points)
-                if not "SELECT * FROM Node WHERE hn_id = %s" % id : 
-                    scraped_content.put()
+                domain = i['domain']
+                if url == None and domain == None:
+                    url = "http://news.ycombinator.com/item?id=%s" % id
+                    domain = "http://news.ycombinator.com/"
                 else:
-                    pass
-                                                    
+                    pass 
+                title = i['title']
+                commentcount = i['num_comments']
+                username = i['username']
+                points = i['points']
+                timestamp = i['create_ts']
+                
+                if not db.GqlQuery("SELECT * FROM Node WHERE hn_id = %s" % id).fetch(1): 
+                    scraped_content = Node( hn_id = id,
+                                            type = type,
+                                            url = url,
+                                            domain = domain,
+                                            title = title,
+                                            commentcount = commentcount,
+                                            username = username,
+                                            points = points,
+                                            #timestamp = timestamp
+                                            )
+                    scraped_content.put()
                             
         else: 
             self.redirect(users.create_login_url(self.request.uri))        

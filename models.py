@@ -3,12 +3,13 @@ from google.appengine.api import users
 
 class Node(db.Model):
     hn_id = db.IntegerProperty(required=True)
-    url = db.StringProperty(required=True)
+    url = db.StringProperty(required=False)
+    domain = db.StringProperty(required=True)
     title = db.StringProperty(required=True)
-    #text = db.TextProperty(default=None)
+    text = db.TextProperty(default=None)
     username = db.StringProperty(required=True)
     points = db.IntegerProperty(required=True)
-    #type = db.IntegerProperty(required=True)
+    type = db.StringProperty(required=True)
     points = db.IntegerProperty(required=True)
     timestamp = db.DateTimeProperty()
     created = db.DateTimeProperty(auto_now_add=True)
