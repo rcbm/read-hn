@@ -12,11 +12,11 @@ handlers:
   static_files: static/images/favicon.ico
   upload: static/images/favicon.ico
 
-- url: /images/
+- url: /img/
   static_dir: static/img
 
-- url: /javascript/
-  static_dir: static/javascript
+- url: /js/
+  static_dir: static/js
 
 - url: /css/
   static_dir: static/css
