@@ -22,3 +22,4 @@ class User(db.Model):
     user_id = db.StringProperty(required=True)
     email = db.EmailProperty()
     stories = db.ListProperty(db.Key)
+    priors = db.StringProperty() 

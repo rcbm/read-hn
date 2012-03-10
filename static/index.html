@@ -1,15 +1,27 @@
 <html>
   <head><title>Bayesian HN reader</title>
     <!--
-	<script type="text/javascript" src="/javascript/enter.js"></script>
-        <link type="text/css" rel="stylesheet" href="/stylesheets/home.css"> 
+		<script type="text/javascript" src="/javascript/enter.js"></script> 
     -->
-    <body>
-      <!-- Welcome Message -->
-      <div class="welcome">
-	Welcome, {{ user.email }}
-      </div>
+		<link type="text/css" rel="stylesheet" href="/css/home.css">
+  </head>  
 
+		<body>
+      <!-- Welcome Message -->
+			<div class="HeaderText" style="text-align:left;margin-top:30px;color:aaaaaa;font-size:50;position:relative;z-index:1;width:950;"> {{user}}'s Posts:</div>
+			<div class="ResultsText" style="text-align: left; width: 950;">
+				{% if posts.0 %}	
+						{% for post in posts %}
+					<div>	
+						</br>
+						<a href="/upvote?key={{ post.key }}&user={{user}}" class="UpVoteText"> Δ </a>
+						{{post.points}} | <a href="{{post.url}}"> {{post.title}} posted by {{post.username}} </a>
+						[<a href="http://news.ycombinator.com/item?id={{post.hn_id}}"> comments </a>]
+				  	</br>	
+					</div>
+						{% endfor %}
+				{% endif %}
+			</div>				
       <!-- Content -->
       <br>
       

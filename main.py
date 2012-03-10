@@ -33,9 +33,18 @@ from models import *
 class MainPage(webapp.RequestHandler):
     def get(self):
         linktext = 'Log Out'
-        self.response.out.write(template.render('static/index.html', { 'user': users.get_current_user(),
-                                                                       'linktext': linktext}))
-# needs urlfetch
+        posts = db.GqlQuery("SELECT * FROM Node ORDER BY points DESC LIMIT 20")
+
+        template_values = {'user': users.get_current_user(),
+                          'linktext': 'Log Out',
+                          'posts': posts}
+
+        self.response.out.write(template.render('static/index.html', template_values))                                                                   
+                                                                       
+
+
+                                                                       
+# requires urlfetch
 class Scrape(webapp.RequestHandler):
     def get(self):
         user = users.get_current_user()
@@ -68,10 +77,28 @@ class Scrape(webapp.RequestHandler):
                                             commentcount = commentcount,
                                             username = username,
                                             points = points,
-                                            #timestamp = timestamp
+                                            #timestamp = timestamp,
+                                            #parentid = parentid,
                                             )
                     scraped_content.put()
+                
                             
         else: 
-            self.redirect(users.create_login_url(self.request.uri))        
+            self.redirect(users.create_login_url(self.request.uri))
         
+        self.redirect('/')
+
+
+class Upvote(webapp.RequestHandler):
+    def get(self):
+        
+        self.redirect('/')
+        """
+        user = self.request.get("user")
+        post = self.request.get("key")
+        user = db.GqlQuery("SELECT * FROM User WHERE user = :1", user).fetch(1)
+        print user
+        #stories = stories.append(post)
+        #print stories
+        #stories.put()
+        """

@@ -73,7 +73,7 @@ b {
         width: 100%;
         position: fixed;
         left: 15px;
-	right: 15px;
+	    right: 15px;
         bottom: 0px;
 }        
 .floatingStar {
@@ -237,7 +237,7 @@ b {
 }
 .ResultsText {
 	  font-family: helvetica;
-          font-size: 24pt;
+          font-size: 16pt;
           color: #777777;
           text-align: left;
           margin-left: auto;
@@ -247,10 +247,27 @@ b {
 	  border-bottom-width: 1px;
 	  padding: 20px;
 }
+.UpVoteText {
+	  font-family: helvetica;
+      font-size: 16pt;
+      color: #777777;
+      text-align: left;
+      margin-left: auto;
+	  margin-right: auto;
+	  border-bottom-color: #FFFFFF;
+	  border-bottom-style: solid;
+	  border-bottom-width: 1px;
+}
 .ResultsText A:link {text-decoration: none;color: #666666;}
 .ResultsText A:visited {text-decoration: none;color: #888888;}
 .ResultsText A:active {text-decoration: none;color: #666666;}
 .ResultsText A:hover {text-decoration: none;color: #3399ff;}
+.UpVoteText A:link {text-decoration: none;color: #666666;}
+.UpVoteText A:visited {text-decoration: none;color: #888888;}
+.UpVoteText A:active {text-decoration: none;color: #666666;}
+.UpVoteText A:hover {text-decoration: none;color: #3399ff;}
+
+
 .topMenu {
 	  font-weight:100;
 	  margin-top: 20px;
