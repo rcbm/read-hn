@@ -2,7 +2,7 @@ from google.appengine.ext import db
 from google.appengine.api import users
 
 class Node(db.Model):
-    id = db.IntegerProperty(required=True)
+    hn_id = db.IntegerProperty(required=True)
     url = db.StringProperty(required=True)
     title = db.StringProperty(required=True)
     #text = db.TextProperty(default=None)

@@ -54,13 +54,17 @@ class Scrape(webapp.RequestHandler):
                 postedBy = i['postedBy']
                 points = i['points']
                 postedAgo = i['postedAgo']
-                scraped_content = Node( id = id,
+                scraped_content = Node( hn_id = id,
                                         url = url,
                                         title = title,
                                         commentcount = commentCount,
                                         username = postedBy,
                                         points = points)
-                scraped_content.put()                                    
+                if not "SELECT * FROM Node WHERE hn_id = %s" % id : 
+                    scraped_content.put()
+                else:
+                    pass
+                                                    
                             
         else: 
             self.redirect(users.create_login_url(self.request.uri))        
