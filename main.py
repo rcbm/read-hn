@@ -48,7 +48,7 @@ class Judge(webapp.RequestHandler):
         # Strip punct and break down into unigrams
         unigrams = word_list = re.split('\s+', title)
         unigrams = [punct.sub("", w) for w in unigrams]
-        
+
         # Count unigrams
         uni_freq_dict = {}
         for word in unigrams:
