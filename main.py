@@ -34,9 +34,9 @@ from models import *
 class Upvote(webapp.RequestHandler):
     def get(self):
         
-        user = self.request.get("user")
+        user = users.get_current_user()
         post = self.request.get("key")
-        user = db.GqlQuery("SELECT * FROM User WHERE user = :1", user).fetch(1)
+        user = db.GqlQuery("SELECT * FROM User WHERE user = :1", user).get()
         print user
         #stories = stories.append(post)
         #print stories
