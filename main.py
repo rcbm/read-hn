@@ -31,19 +31,11 @@ from google.appengine.api import users
 from google.appengine.api import taskqueue
 from models import *
 
-class Upvote(webapp.RequestHandler):
+class Judge(webapp.RequestHandler):
     def get(self):
-        
         user = users.get_current_user()
         post = self.request.get("key")
         user = db.GqlQuery("SELECT * FROM User WHERE user = :1", user).get()
-        print user
-        #stories = stories.append(post)
-        #print stories
-        #stories.put()
-
-class Judge(webapp.RequestHandler):
-    def get(self):
 
 class MainPage(webapp.RequestHandler):
     def get(self):
@@ -56,7 +48,7 @@ class MainPage(webapp.RequestHandler):
 
         self.response.out.write(template.render('static/index.html', template_values))                                                                   
 
-        
+
 class Scrape(webapp.RequestHandler):
     def get(self):
         user = users.get_current_user()

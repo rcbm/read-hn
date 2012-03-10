@@ -14,7 +14,7 @@
 						{% for post in posts %}
 					<div>	
 						</br>
-						<a href="/vote?key={{ post.key }}" class="DownVoteText"> ∇ </a>
+						<a href="/vote?key={{ post.key }}" class="DownVoteText"> <b>X</b> </a>
 						{{post.points}} | <a href="{{post.url}}"> {{post.title}} posted by {{post.username}} </a>
 						[<a href="http://news.ycombinator.com/item?id={{post.hn_id}}"> comments </a>]
 				  	</br>	
