@@ -54,24 +54,27 @@
       <h1>Welcome to the smart HN reader!</h1>
 			<p> Hacker News has great content, but it's all to easy to burn through more time than you'd like reading articles you don't really care that much about. We're hoping to make our consumption of HN more streamlined and efficient, with a content filtering tailored to our specific interests. Our filter uses a simple upvote/downvote system and a Bayesian algorithm. </p>  
 		</br>
-			<h3> Your matching posts: </h3>			
+			<h3> Your matching posts: </h3>		
+		</div>
+		<div class="container" style="padding-left: 25px">	
 			</br>
 			{% if posts.0 %}	
 					{% for post in posts %}	
-							<div class="row">
-				          <div class="span12">
-										<a href="#"><i class="icon-arrow-up"></i></a>
-										<a href="/vote?key={{ post.key }}"><i class="icon-arrow-down"></i></a>
-										<a href="{{post.url}}" style="margin-left: 5px; font-size: 20px"> {{post.title}} </a>
-									</div>
+							<div class="row" style="border-bottom-color: #FFFFFF;border-bottom-style: solid;border-bottom-width: 1px;padding: 20px;background-color: {% cycle #DDD,#EEE %}">
+				        <div class="row">  
+									<div class="span12">
+											<a href="#"><i class="icon-arrow-up"></i></a>
+											<a href="/vote?key={{ post.key }}"><i class="icon-arrow-down"></i></a>
+											<a href="{{post.url}}" style="margin-left: 5px; font-size: 20px"> {{post.title}} </a>
+										</div>
+								</div>
+								<div class="row">
+										<div class="span12" style="margin-left: 61px; color: grey">
+											{{post.points}} points by {{post.username}} | 
+										<a href="http://news.ycombinator.com/item?id={{post.hn_id}}" style="color: grey"> comments </a>
+										</div>
+								</div>
 							</div>
-							<div class="row">
-									<div class="span12" style="margin-left: 61px; color: grey">
-										{{post.points}} points by {{post.username}} | 
-									<a href="http://news.ycombinator.com/item?id={{post.hn_id}}" style="color: grey"> comments </a>
-									</div>
-							</div>
-						</br>
 					{% endfor %}
 			{% endif %}
 			
