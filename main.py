@@ -109,7 +109,7 @@ class MainPage(webapp.RequestHandler):
             posts = db.GqlQuery("SELECT * FROM Node ORDER BY points DESC LIMIT 20")
             
             template_values = {'user': users.get_current_user(),
-                               'url': users.create_logout_url("/"),
+                               'logout_url': users.create_logout_url("/"),
                                'posts': posts}
             
             self.response.out.write(template.render('static/index.html', template_values))                                                                   
