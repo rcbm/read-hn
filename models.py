@@ -45,6 +45,9 @@ class Node(db.Model):
     commentcount = db.IntegerProperty()
     parentid = db.IntegerProperty()
 
+class StopWord(db.Model):
+    word = db.StringProperty(required=True)
+
 class Features(db.Model):
     num_down = db.IntegerProperty()
     num_up = db.IntegerProperty()
