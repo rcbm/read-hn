@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <title>Bootstrap, from Twitter</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="A reader with bayesian filter for Hacker News">
-    <meta name="author" content="Roger Cosseboom and Matt Barackman">
+    <meta name="description" content="">
+    <meta name="author" content="">
 
     <!-- Le styles -->
     <link href="css/bootstrap.css" rel="stylesheet">
@@ -22,7 +22,10 @@
     <![endif]-->
 
     <!-- Le fav and touch icons -->
-    <link rel="shortcut icon" href="img/favicon.ico">
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
   </head>
 
   <body>
@@ -35,12 +38,12 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </a>
-          <a class="brand" href="#">Bayesian HN Reader</a>
+          <a class="brand" href="#">Project name</a>
           <div class="nav-collapse">
             <ul class="nav">
               <li class="active"><a href="#">Home</a></li>
-              <li><a href="mailto:roger.cosseboom@gmail.com">Contact</a></li>
-							<li><a href="#">Log Out</a></li>
+              <li><a href="#about">About</a></li>
+              <li><a href="#contact">Contact</a></li>
             </ul>
           </div><!--/.nav-collapse -->
         </div>
@@ -51,28 +54,9 @@
 
       <h1>Bootstrap starter template</h1>
       <p>Use this document as a way to quick start any new project.<br> All you get is this message and a barebones HTML document.</p>
-			
-			<a href="/scrape" button class="btn btn-primary">Scrape</a>
-			
-			<div class="row">
-					{% if posts.0 %}	
-							{% for post in posts %}	
-									<div class="span8">
-										<a href="#" class="icon-arrowdown">X</a>
-										{{post.points}} | <a href="{{post.url}}"> {{post.title}} posted by {{post.username}} </a>
-										<div class="row">
-											<div class="span2">
-												[<a href="http://news.ycombinator.com/item?id={{post.hn_id}}"> comments </a>]
-											</div>
-										</div>
-									</div>					
-										<!--<a href="/vote?key={{ post.key }}" class="DownVoteText"> <b>X</b> </a>	-->					
-							{% endfor %}
-					{% endif %}
-			</div>
-			
-		</div> <!-- /container -->
-	    
+
+    </div> <!-- /container -->
+
     <!-- Le javascript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->

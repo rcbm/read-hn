@@ -92,6 +92,7 @@ class Judge(webapp.RequestHandler):
             
 class MainPage(webapp.RequestHandler):
     def get(self):
+
         temp_user = users.get_current_user()
         if temp_user:
             user = db.GqlQuery("SELECT * FROM User WHERE user_id = '%s'" % temp_user.user_id()).get()
