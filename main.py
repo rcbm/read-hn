@@ -23,11 +23,14 @@ DONE
 import os
 import logging
 import datetime
+import json
 from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
 from google.appengine.api import users
 from google.appengine.api import taskqueue
+from google.appengine.api import urlfetch
+
 #from models import *
 
 
@@ -39,4 +42,11 @@ class MainPage(webapp.RequestHandler):
         #self.response.out.write(template.render('static/index.html', { 'linktext': self.linktext,
         #                                                               'events': events }))
         
-
+# needs urlfetch
+class Scrape(webapp.RequestHandler):
+    def get(self):
+       # result = urlfetch.fetch('http://api.ihackernews.com/page')
+        result = urlfetch.fetch('http://api.ihackernews.com/page')
+        print result.content
+        #if result.status_code == 200:
+         # print json.loads(result)
