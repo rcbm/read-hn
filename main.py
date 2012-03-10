@@ -46,7 +46,7 @@ class MainPage(webapp.RequestHandler):
                           'linktext': 'Log Out',
                           'posts': posts}
 
-        self.response.out.write(template.render('static/index.html', template_values))                                                                   
+        self.response.out.write(template.render('static/index2.html', template_values))                                                                   
 
 
 class Scrape(webapp.RequestHandler):

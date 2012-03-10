@@ -13,7 +13,7 @@ handlers:
   upload: static/images/favicon.ico
 
 - url: /images/
-  static_dir: static/images
+  static_dir: static/img
 
 - url: /javascript/
   static_dir: static/javascript
