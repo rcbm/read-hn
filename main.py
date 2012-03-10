@@ -31,24 +31,87 @@ from google.appengine.api import users
 from google.appengine.api import taskqueue
 from models import *
 
+'''
+When a user X's out a story, a get request is called w/ the key to /vote -> Judge
+- Judge calls the breakout method
+  
+'''
+
 class Judge(webapp.RequestHandler):
+    def breakout(self, key):
+        story = db.get(key)
+        title = story.title
+        
+        import re
+        punct = re.compile(r'[.?!,":;]') 
+
+        # Strip punct and break down into unigrams
+        unigrams = word_list = re.split('\s+', title)
+        unigrams = [punct.sub("", w) for w in unigrams]
+        
+        # Count unigrams
+        uni_freq_dict = {}
+        for word in unigrams:
+            uni_freq_dict[word] = uni_freq_dict.get(word,0) + 1
+        
+        # Break down into bigrams
+        bigrams = []
+        for index, x in enumerate(unigrams):
+            if (index + 1) < len(unigrams):
+                bigrams.append((x, unigrams[index + 1]))
+
+        # Count bigrams
+        bi_freq_dict = {}
+        for b in bigrams: bi_freq_dict[b] = bi_freq_dict.get(b,0) + 1
+
+        return {'uni': uni_freq_dict,
+                'bi': bi_freq_dict}
+
     def get(self):
         user = users.get_current_user()
-        post = self.request.get("key")
-        user = db.GqlQuery("SELECT * FROM User WHERE user = :1", user).get()
+        ngrams = self.breakout(self.request.get("key"))
+        user = db.GqlQuery("SELECT * FROM User WHERE user_id = '%s'" % users.get_current_user().user_id()).get()
 
+        if not user.feature_profile:
+            feature = Features(unigram_dict = ngrams['uni'],
+                               bigram_dict = ngrams['bi'])
+            feature.put()
+            user.feature_profile = feature.key()
+            user.put()
+        else:
+            features = user.feature_profile
+            unidict = features.unigram_dict
+            bidict = features.bigram_dict
+            
+            for key in ngrams['uni']:
+                unidict[key] = unidict.get(key,0) + 1
+            for key in ngrams['bi']:
+                bidict[key] = bidict.get(key,0) + 1
+            features.put()
+        self.redirect('/')
+            
 class MainPage(webapp.RequestHandler):
     def get(self):
-        linktext = 'Log Out'
-        posts = db.GqlQuery("SELECT * FROM Node ORDER BY points DESC LIMIT 20")
+        temp_user = users.get_current_user()
+        if temp_user:
+            user = db.GqlQuery("SELECT * FROM User WHERE user_id = '%s'" % temp_user.user_id()).get()
+            if not user:
+                new_user = User(user = temp_user,
+                                user_id = temp_user.user_id(),
+                                email = temp_user.email())
+                new_user.put()
+                user = new_user                
 
-        template_values = {'user': users.get_current_user(),
-                          'linktext': 'Log Out',
-                          'posts': posts}
-
-        self.response.out.write(template.render('static/index.html', template_values))                                                                   
-
-
+            posts = db.GqlQuery("SELECT * FROM Node ORDER BY points DESC LIMIT 20")
+            
+            template_values = {'user': users.get_current_user(),
+                               'url': users.create_logout_url("/"),
+                               'posts': posts}
+            
+            self.response.out.write(template.render('static/index.html', template_values))                                                                   
+        else:
+            self.redirect(users.create_login_url(self.request.uri))
+            
 class Scrape(webapp.RequestHandler):
     def get(self):
         user = users.get_current_user()
