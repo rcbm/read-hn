@@ -41,6 +41,8 @@
               <li class="active"><a href="#">Home</a></li>
               <li><a href="mailto:roger.cosseboom@gmail.com">Contact</a></li>
 							<li><a href="#">Log Out</a></li>
+							<li><a href="/scrape">Scrape</a></li>
+							
             </ul>
           </div><!--/.nav-collapse -->
         </div>
@@ -49,46 +51,36 @@
 
     <div class="container">
 
-      <h1>Bootstrap starter template</h1>
-      <p>Use this document as a way to quick start any new project.<br> All you get is this message and a barebones HTML document.</p>
-			
-			<a href="/scrape" button class="btn btn-primary">Scrape</a>
-			
-			<div class="row">
-					{% if posts.0 %}	
-							{% for post in posts %}	
-									<div class="span8">
-										<a href="/vote?key={{ post.key }}" class="icon-arrowdown">X</a>
-										{{post.points}} | <a href="{{post.url}}"> {{post.title}} posted by {{post.username}} </a>
-										<div class="row">
-											<div class="span2">
-												[<a href="http://news.ycombinator.com/item?id={{post.hn_id}}"> comments </a>]
-											</div>
-										</div>
-									</div>					
-										<!--<a href="/vote?key={{ post.key }}" class="DownVoteText"> <b>X</b> </a>	-->					
-							{% endfor %}
-					{% endif %}
-			</div>
+      <h1>Welcome to the smart HN reader!</h1>
+			<p> Hacker News has great content, but it's all to easy to burn through more time than you'd like reading articles you don't really care that much about. We're hoping to make our consumption of HN more streamlined and efficient, with a content filtering tailored to our specific interests. Our filter uses a simple upvote/downvote system and a Bayesian algorithm. </p>  
+		</br>
+			<h3> Your matching posts: </h3>			
+			</br>
+			{% if posts.0 %}	
+					{% for post in posts %}	
+							<div class="row">
+				          <div class="span12">
+										<a href="#"><i class="icon-arrow-up"></i></a>
+					          <a href="/vote?key={{ post.key }}"><i class="icon-arrow-down"></i></a>
+										| <a href="{{post.url}}">  {{post.title}} </a>
+									</div>
+							</div>
+							<div class="row">
+									<div class="span12">
+									{{post.points}} points by {{post.username}} | 
+									<a href="http://news.ycombinator.com/item?id={{post.hn_id}}"> comments </a>		
+									</div>
+							</div>
+						</br>
+					{% endfor %}
+			{% endif %}
 			
 		</div> <!-- /container -->
 	    
     <!-- Le javascript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
-    <script src="js/jquery.js"></script>
-    <script src="js/bootstrap-transition.js"></script>
-    <script src="js/bootstrap-alert.js"></script>
-    <script src="js/bootstrap-modal.js"></script>
-    <script src="js/bootstrap-dropdown.js"></script>
-    <script src="js/bootstrap-scrollspy.js"></script>
-    <script src="js/bootstrap-tab.js"></script>
-    <script src="js/bootstrap-tooltip.js"></script>
-    <script src="js/bootstrap-popover.js"></script>
-    <script src="js/bootstrap-button.js"></script>
-    <script src="js/bootstrap-collapse.js"></script>
-    <script src="js/bootstrap-carousel.js"></script>
-    <script src="js/bootstrap-typeahead.js"></script>
+    <script src="js/bootstrap.js"></script>
 
   </body>
 </html>
