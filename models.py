@@ -54,8 +54,8 @@ class Features(db.Model):
     #down_stories = db.ListProperty(db.Key)
     #up_stories = db.ListProperty(db.Key)
 
-    num_down = db.IntegerProperty(default=0)
-    num_up = db.IntegerProperty(default=0)
+    num_down = db.IntegerProperty(default=1)
+    num_up = db.IntegerProperty(default=1)
     
     down_unigram_dict = DictProperty()
     down_unigram_prob = DictProperty()

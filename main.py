@@ -71,55 +71,41 @@ class Judge(webapp.RequestHandler):
         user = db.GqlQuery("SELECT * FROM User WHERE user_id = '%s'" % temp_user.user_id()).get()
         up = True if self.request.get("dir") == 'up' else False
         ngrams = self.breakout(self.request.get("key"))
+        features = Features() if not user.feature_profile else user.feature_profile
+        numdown = features.num_down
+        numup = features.num_up
+        if up:
+            features.num_up += 1
+        else:
+            features.num_down += 1
+        denom = numup if up else numdown
         
-        # User doesn't have a features profile yet, so set up a new one
-        if not user.feature_profile:
-            features = Features(unigram_dict = ngrams['uni'],
-                               unigram_prob = dict((key, 0.0) for key in ngrams['uni'].keys()),
-                               bigram_dict = ngrams['bi'],
-                               bigram_prob = dict((key, 0.0) for key in ngrams['bi'].keys()))
-            if up:
-                features.num_up = 1
-            else:
-                features.num_down = 1
-            features.put()
+        # Increase counts in the dictionaries
+        unidict = features.up_unigram_dict if up else features.down_unigram_dict
+        uniprob = features.up_unigram_prob if up else features.down_unigram_prob
+        bidict = features.up_bigram_dict if up else features.down_bigram_dict
+        biprob = features.up_bigram_prob if up else features.down_bigram_prob
 
+        for key in ngrams['uni']:
+            unidict[key] = unidict.get(key,0) + 1
+            if key in uniprob:
+                uniprob[key] = uniprob[key] + log(1.0/denom)
+            else:
+                uniprob[key] = log(1.0/denom)
+
+        for key in ngrams['bi']:
+            bidict[key] = bidict.get(key,0) + 1
+            if key in biprob:
+                biprob[key] = biprob[key] + log(1.0/denom)
+            else:
+                biprob[key] = log(1.0/denom)
+
+        # Write Features to Datastore
+        features.put()
+        if not user.feature_profile:
             user.feature_profile = features.key()
             user.put()
-            self.redirect('/')
-
-        else:
-            features = user.feature_profile
-            if up:
-                features.num_up += 1
-            else:
-                features.num_down += 1
-                
-            numdown = features.num_down
-            numup = features.num_up
-            
-            # Increase counts in the dictionaries
-            unidict = features.up_unigram_dict if up else features.down_unigram_dict
-            uniprob = features.up_unigram_prob if up else features.down_unigram_prob
-            bidict = features.up_bigram_dict if up else features.down_bigram_dict
-            biprob = features.up_bigram_prob if up else features.down_bigram_prob
-
-            for key in ngrams['uni']:
-                unidict[key] = unidict.get(key,0) + 1
-                if key in uniprob:
-                    uniprob[key] = uniprob[key] + log(1.0/features.num_down)
-                else:
-                    uniprob[key] = log(1.0/features.num_down)
-
-            for key in ngrams['bi']:
-                bidict[key] = bidict.get(key,0) + 1
-                if key in biprob:
-                    biprob[key] = biprob[key] + log(1.0/features.num_down)
-                else:
-                    biprob[key] = log(1.0/features.num_down)
-
-            features.put()
-
+        
         print ''
         print 'NUMDOWN: %s' %numdown
         print 'NUMUP: %s\n' %numup
@@ -142,7 +128,7 @@ class Judge(webapp.RequestHandler):
             print '%s: %s' %(key, value)
         print ''
 
-#self.redirect('/')
+        #self.redirect('/')
             
 class MainPage(webapp.RequestHandler):
     def get(self):
