@@ -104,19 +104,6 @@ class Judge(webapp.RequestHandler):
             bidict = features.up_bigram_dict if up else features.down_bigram_dict
             biprob = features.up_bigram_prob if up else features.down_bigram_prob
 
-            print ''
-            print 'NUMDOWN: %s' %numdown
-            print 'NUMUP: %s' %numup
-            
-            print 'EXISTING PROBABILITIES'
-            print '-------------------------\n'
-            for key,value in uniprob.iteritems():
-                print '%s: %s' %(key, value)
-            print ''
-            for key,value in biprob.iteritems():
-                print '%s: %s' %(key, value)
-            print ''
-
             for key in ngrams['uni']:
                 unidict[key] = unidict.get(key,0) + 1
                 if key in uniprob:
@@ -133,7 +120,29 @@ class Judge(webapp.RequestHandler):
 
             features.put()
 
-        #self.redirect('/')
+        print ''
+        print 'NUMDOWN: %s' %numdown
+        print 'NUMUP: %s\n' %numup
+
+        print 'DOWN PROBABILITIES'
+        print '-------------------------\n'
+        for key,value in features.down_unigram_prob.iteritems():
+            print '%s: %s' %(key, value)
+        print ''
+        for key,value in features.down_bigram_prob.iteritems():
+            print '%s: %s' %(key, value)
+        print '\n'
+
+        print 'UP PROBABILITIES'
+        print '-------------------------\n'
+        for key,value in features.up_unigram_prob.iteritems():
+            print '%s: %s' %(key, value)
+        print ''
+        for key,value in features.up_bigram_prob.iteritems():
+            print '%s: %s' %(key, value)
+        print ''
+
+#self.redirect('/')
             
 class MainPage(webapp.RequestHandler):
     def get(self):
