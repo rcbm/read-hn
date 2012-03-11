@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>Bootstrap, from Twitter</title>
+    <title>Bayesian HN Reader</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="A reader with bayesian filter for Hacker News">
     <meta name="author" content="Roger Cosseboom and Matt Barackman">
@@ -55,16 +55,30 @@
       </div>
     </div>
 
-    <div class="container">
-
-      <h1>Welcome to the smart HN reader!</h1>
-			<p> Hacker News has great content, but it's all to easy to burn through more time than you'd like reading articles you don't really care that much about. We're hoping to make our consumption of HN more streamlined and efficient, with a content filtering tailored to our specific interests. Our filter uses a simple upvote/downvote system and a Bayesian algorithm. </p>  
-		</br>
-			<h3> Relevant Results: </h3>		
-		</div>
-		<div class="container" style="padding-left: 25px">	
-			</br>
+		<div class="row">		
+			<div class="span2 offset10" style="margin-top: 30px">
+			<img src="/img/logo.jpg" style="position: absolute; z-index:-1"/> 
+			</div>
+		</div>     
+		<div class="container" style="margin-top: 130px">			
+      <div class="row">
+				<div class="span12">
+					<h1>Welcome to the smart HN reader!</h1>
+				</div>
+			</div>
+			<div class="row">
+				<div class="span8">
+					<p> Hacker News has great content, but it's all to easy to burn through more time than you'd like reading articles you don't really care that much about. We're hoping to make our consumption of HN more streamlined and efficient, with a content filtering tailored to our specific interests. Our filter uses a simple upvote/downvote system and a Bayesian algorithm. </p>
+				</div>
+			</div>
 			{% if posts.0 %}	
+			<div class="container" style="padding-left: 25px; margin-top: 100px">	
+				<div class="row">
+					<div class="span8">
+						<h3> Relevant Results: </h3>		
+					</div>
+				</div>
+				</br>
 					{% for post in posts %}	
 							<div id="{{post}}" class="row" style="border-bottom-color: #FFFFFF;border-bottom-style: solid;border-bottom-width: 1px;padding: 20px;background-color: {% cycle #DDD,#EEE %}">
 				        <div class="row">  
