@@ -51,11 +51,11 @@ class StopWord(db.Model):
 class Features(db.Model):
     updated = db.DateTimeProperty(auto_now=True)
 
-    #down_stories = db.ListProperty(db.Key)
-    #up_stories = db.ListProperty(db.Key)
+    down_stories = db.ListProperty(db.Key)
+    up_stories = db.ListProperty(db.Key)
 
-    num_down = db.IntegerProperty(default=0)
-    num_up = db.IntegerProperty(default=0)
+    num_down = db.IntegerProperty(default=1)
+    num_up = db.IntegerProperty(default=1)
     
     down_unigram_dict = DictProperty()
     down_unigram_prob = DictProperty()

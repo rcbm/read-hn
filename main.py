@@ -1,30 +1,9 @@
-'''
-THINGS TO-DO:
-------------
--Build scraper
--Build system to pull things out of db and show them for user
--Build system to rank an article and save rank info
--Build classifier
-
-BUGS:
-------------
-
-
-###########################################################################################
-
-DONE
--------------
--Build model
-
-'''
-
 import os
-
 import datetime
 import json
 import urllib2
 import logging
-from math import log, exp
+from math import log, exp, fabs
 from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
@@ -32,12 +11,11 @@ from google.appengine.api import users
 from google.appengine.api import taskqueue
 from models import *
 
-class Judge(webapp.RequestHandler):
-    def breakout(self, key):
-        story = db.get(key)
-        title = story.title
-        
+class Break():
+    def breakout(self, story):
         import re
+        import unicodedata
+        title = story.title
         punct = re.compile(r'[.?!,":;]') 
         
         # Load stopwords
@@ -45,7 +23,7 @@ class Judge(webapp.RequestHandler):
         
         # Strip punct and break down into unigrams
         unigrams = word_list = re.split('\s+', title)
-        unigrams = [punct.sub("", str(w)) for w in unigrams]
+        unigrams = [punct.sub("", str(unicodedata.normalize('NFKD', w).encode('ascii','ignore'))) for w in unigrams]
 
         # Count unigrams
         uni_freq_dict = {}
@@ -65,79 +43,108 @@ class Judge(webapp.RequestHandler):
 
         return {'uni': uni_freq_dict,
                 'bi': bi_freq_dict}
-
+    
+    
+class Judge(webapp.RequestHandler):
     def get(self):
         temp_user = users.get_current_user()
+        key = self.request.get("key")
+        story = db.get(key)
+        ngrams = Break().breakout(story)
         user = db.GqlQuery("SELECT * FROM User WHERE user_id = '%s'" % temp_user.user_id()).get()
         up = True if self.request.get("dir") == 'up' else False
-        ngrams = self.breakout(self.request.get("key"))
-        
-        # User doesn't have a features profile yet, so set up a new one
-        if not user.feature_profile:
-            features = Features(unigram_dict = ngrams['uni'],
-                               unigram_prob = dict((key, 0.0) for key in ngrams['uni'].keys()),
-                               bigram_dict = ngrams['bi'],
-                               bigram_prob = dict((key, 0.0) for key in ngrams['bi'].keys()))
-            if up:
-                features.num_up = 1
-            else:
-                features.num_down = 1
-            features.put()
+        features = Features() if not user.feature_profile else user.feature_profile
+        numdown = features.num_down
+        numup = features.num_up
+        denom = numup if up else numdown
 
+        if up:
+            features.num_up += 1
+            features.up_stories.append(story.key())
+        else:
+            features.num_down += 1
+            features.down_stories.append(story.key())
+        
+        # Map the correct features depending on the direction
+        unidict = features.up_unigram_dict if up else features.down_unigram_dict
+        uniprob = features.up_unigram_prob if up else features.down_unigram_prob
+        bidict = features.up_bigram_dict if up else features.down_bigram_dict
+        biprob = features.up_bigram_prob if up else features.down_bigram_prob
+
+        # Add unigram counts and recalc probabilities
+        for key in ngrams['uni']:
+            unidict[key] = unidict.get(key,0) + 1
+            if key in uniprob:
+                uniprob[key] = uniprob[key] + log(1.0/denom)
+            else:
+                uniprob[key] = log(1.0/denom)
+
+        # Add bigram counts and recalc probabilities
+        for key in ngrams['bi']:
+            bidict[key] = bidict.get(key,0) + 1
+            if key in biprob:
+                biprob[key] = biprob[key] + log(1.0/denom)
+            else:
+                biprob[key] = log(1.0/denom)
+
+        # Save updated Features Set to Datastore
+        features.put()
+        if not user.feature_profile:
             user.feature_profile = features.key()
             user.put()
-            self.redirect('/')
+        
+        print ''
+        print 'NUMDOWN: %s' %numdown
+        print 'NUMUP: %s\n' %numup
 
-        else:
-            features = user.feature_profile
-            if up:
-                features.num_up += 1
-            else:
-                features.num_down += 1
-                
-            numdown = features.num_down
-            numup = features.num_up
-            
-            # Increase counts in the dictionaries
-            unidict = features.up_unigram_dict if up else features.down_unigram_dict
-            uniprob = features.up_unigram_prob if up else features.down_unigram_prob
-            bidict = features.up_bigram_dict if up else features.down_bigram_dict
-            biprob = features.up_bigram_prob if up else features.down_bigram_prob
+        print 'DOWN PROBABILITIES'
+        print '-------------------------\n'
+        for key,value in features.down_unigram_prob.iteritems():
+            print '%s: %s' %(key, value)
+        print ''
+        for key,value in features.down_bigram_prob.iteritems():
+            print '%s: %s' %(key, value)
+        print '\n'
 
-            print ''
-            print 'NUMDOWN: %s' %numdown
-            print 'NUMUP: %s' %numup
-            
-            print 'EXISTING PROBABILITIES'
-            print '-------------------------\n'
-            for key,value in uniprob.iteritems():
-                print '%s: %s' %(key, value)
-            print ''
-            for key,value in biprob.iteritems():
-                print '%s: %s' %(key, value)
-            print ''
-
-            for key in ngrams['uni']:
-                unidict[key] = unidict.get(key,0) + 1
-                if key in uniprob:
-                    uniprob[key] = uniprob[key] + log(1.0/features.num_down)
-                else:
-                    uniprob[key] = log(1.0/features.num_down)
-
-            for key in ngrams['bi']:
-                bidict[key] = bidict.get(key,0) + 1
-                if key in biprob:
-                    biprob[key] = biprob[key] + log(1.0/features.num_down)
-                else:
-                    biprob[key] = log(1.0/features.num_down)
-
-            features.put()
+        print 'UP PROBABILITIES'
+        print '-------------------------\n'
+        for key,value in features.up_unigram_prob.iteritems():
+            print '%s: %s' %(key, value)
+        print ''
+        for key,value in features.up_bigram_prob.iteritems():
+            print '%s: %s' %(key, value)
+        print ''
 
         #self.redirect('/')
             
 class MainPage(webapp.RequestHandler):
-    def get(self):
+    def classify(self, features):
+        posts = db.GqlQuery("SELECT * FROM Node ORDER BY points DESC LIMIT 100")
+        b = Break()
+        for post in posts:
+            ngrams = b.breakout(post)
+            downprob = 0.0
+            upprob = 0.0
+            for n in ngrams['uni']:
+                if n in features.up_unigram_prob:
+                    upprob += features.up_unigram_prob[n]
+                    #self.response.out.write('UP: %s : %s<BR>' %(n, features.up_unigram_prob[n]))
+                if n in features.down_unigram_prob:
+                    downprob += features.down_unigram_prob[n]
+                    #self.response.out.write('DOWN: %s : %s<BR>' %(n, features.down_unigram_prob[n]))
 
+            # Weight bigrams 2x as much as unigrams?
+                    
+            if fabs(downprob) - fabs(upprob) <= 0:
+                if fabs(upprob) > 0:
+                    self.response.out.write('<i><b>%s</b></i><br>' %post.title)
+                else:
+                    self.response.out.write('%s<br>' %post.title)
+            else:
+                self.response.out.write('<font color="#ddd">%s</font><br>' %post.title)
+            #self.response.out.write('ID: %s | UP: %s | DOWN: %s<br>' %(post.hn_id, upprob, downprob))
+            
+    def get(self):
         temp_user = users.get_current_user()
         if temp_user:
             user = db.GqlQuery("SELECT * FROM User WHERE user_id = '%s'" % temp_user.user_id()).get()
@@ -148,8 +155,11 @@ class MainPage(webapp.RequestHandler):
                 new_user.put()
                 user = new_user                
 
-            posts = db.GqlQuery("SELECT * FROM Node ORDER BY points DESC LIMIT 20")
-            
+            if not user.feature_profile:
+                posts = db.GqlQuery("SELECT * FROM Node ORDER BY points DESC LIMIT 100")
+            else:
+                posts = self.classify(user.feature_profile)
+                
             template_values = {'user': users.get_current_user(),
                                'logout_url': users.create_logout_url("/"),
                                'posts': posts}
