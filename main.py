@@ -69,7 +69,7 @@ class Judge(webapp.RequestHandler):
     def get(self):
         temp_user = users.get_current_user()
         user = db.GqlQuery("SELECT * FROM User WHERE user_id = '%s'" % temp_user.user_id()).get()
-        dir = self.request.get("dir")
+        up = True if self.request.get("dir") == 'up' else False
         ngrams = self.breakout(self.request.get("key"))
         
         # User doesn't have a features profile yet, so set up a new one
@@ -78,10 +78,10 @@ class Judge(webapp.RequestHandler):
                                unigram_prob = dict((key, 0.0) for key in ngrams['uni'].keys()),
                                bigram_dict = ngrams['bi'],
                                bigram_prob = dict((key, 0.0) for key in ngrams['bi'].keys()))
-            if dir == 'down':
-                features.num_down = 1
-            else:
+            if up:
                 features.num_up = 1
+            else:
+                features.num_down = 1
             features.put()
 
             user.feature_profile = features.key()
@@ -90,21 +90,24 @@ class Judge(webapp.RequestHandler):
 
         else:
             features = user.feature_profile
-            if dir == 'down':
-                features.num_down += 1
-            else:
+            if up:
                 features.num_up += 1
+            else:
+                features.num_down += 1
                 
-            num = features.num_down
+            numdown = features.num_down
+            numup = features.num_up
             
             # Increase counts in the dictionaries
-            unidict = features.unigram_dict
-            uniprob = features.unigram_prob
-            bidict = features.bigram_dict
-            biprob = features.bigram_prob
+            unidict = features.up_unigram_dict if up else features.down_unigram_dict
+            uniprob = features.up_unigram_prob if up else features.down_unigram_prob
+            bidict = features.up_bigram_dict if up else features.down_bigram_dict
+            biprob = features.up_bigram_prob if up else features.down_bigram_prob
 
             print ''
-            print 'NUMDOWN: %s' %num
+            print 'NUMDOWN: %s' %numdown
+            print 'NUMUP: %s' %numup
+            
             print 'EXISTING PROBABILITIES'
             print '-------------------------\n'
             for key,value in uniprob.iteritems():
