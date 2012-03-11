@@ -3,7 +3,7 @@ import datetime
 import json
 import urllib2
 import logging
-from math import log, exp
+from math import log, exp, fabs
 from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
@@ -119,16 +119,30 @@ class Judge(webapp.RequestHandler):
             
 class MainPage(webapp.RequestHandler):
     def classify(self, features):
-        posts = db.GqlQuery("SELECT * FROM Node ORDER BY points DESC LIMIT 25")
+        posts = db.GqlQuery("SELECT * FROM Node ORDER BY points DESC LIMIT 100")
         b = Break()
         for post in posts:
             ngrams = b.breakout(post)
+            downprob = 0.0
+            upprob = 0.0
             for n in ngrams['uni']:
-                if n in features.up_unigram_dict:
-                    self.response.out.write('UP: %s : %s<BR>' %(n, features.up_unigram_dict[n]))
-                if n in features.down_unigram_dict:
-                    self.response.out.write('DOWN: %s : %s<BR>' %(n, features.down_unigram_dict[n]))
+                if n in features.up_unigram_prob:
+                    upprob += features.up_unigram_prob[n]
+                    #self.response.out.write('UP: %s : %s<BR>' %(n, features.up_unigram_prob[n]))
+                if n in features.down_unigram_prob:
+                    downprob += features.down_unigram_prob[n]
+                    #self.response.out.write('DOWN: %s : %s<BR>' %(n, features.down_unigram_prob[n]))
+
+            # Weight bigrams 2x as much as unigrams?
                     
+            if fabs(downprob) - fabs(upprob) <= 0:
+                if fabs(upprob) > 0:
+                    self.response.out.write('<i><b>%s</b></i><br>' %post.title)
+                else:
+                    self.response.out.write('%s<br>' %post.title)
+            else:
+                self.response.out.write('<font color="#ddd">%s</font><br>' %post.title)
+            #self.response.out.write('ID: %s | UP: %s | DOWN: %s<br>' %(post.hn_id, upprob, downprob))
             
     def get(self):
         temp_user = users.get_current_user()
@@ -142,7 +156,7 @@ class MainPage(webapp.RequestHandler):
                 user = new_user                
 
             if not user.feature_profile:
-                posts = db.GqlQuery("SELECT * FROM Node ORDER BY points DESC LIMIT 20")
+                posts = db.GqlQuery("SELECT * FROM Node ORDER BY points DESC LIMIT 100")
             else:
                 posts = self.classify(user.feature_profile)
                 
