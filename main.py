@@ -32,12 +32,11 @@ from google.appengine.api import users
 from google.appengine.api import taskqueue
 from models import *
 
-class Judge(webapp.RequestHandler):
-    def breakout(self, key):
-        story = db.get(key)
-        title = story.title
-        
+class Break():
+    def breakout(self, story):
         import re
+        import unicodedata
+        title = story.title
         punct = re.compile(r'[.?!,":;]') 
         
         # Load stopwords
@@ -45,7 +44,7 @@ class Judge(webapp.RequestHandler):
         
         # Strip punct and break down into unigrams
         unigrams = word_list = re.split('\s+', title)
-        unigrams = [punct.sub("", str(w)) for w in unigrams]
+        unigrams = [punct.sub("", str(unicodedata.normalize('NFKD', w).encode('ascii','ignore'))) for w in unigrams]
 
         # Count unigrams
         uni_freq_dict = {}
@@ -65,27 +64,35 @@ class Judge(webapp.RequestHandler):
 
         return {'uni': uni_freq_dict,
                 'bi': bi_freq_dict}
-
+    
+    
+class Judge(webapp.RequestHandler):
     def get(self):
         temp_user = users.get_current_user()
+        key = self.request.get("key")
+        story = db.get(key)
+        ngrams = Break().breakout(story)
         user = db.GqlQuery("SELECT * FROM User WHERE user_id = '%s'" % temp_user.user_id()).get()
         up = True if self.request.get("dir") == 'up' else False
-        ngrams = self.breakout(self.request.get("key"))
         features = Features() if not user.feature_profile else user.feature_profile
         numdown = features.num_down
         numup = features.num_up
+        denom = numup if up else numdown
+
         if up:
             features.num_up += 1
+            features.up_stories.append(story.key())
         else:
             features.num_down += 1
-        denom = numup if up else numdown
+            features.down_stories.append(story.key())
         
-        # Increase counts in the dictionaries
+        # Map the correct features depending on the direction
         unidict = features.up_unigram_dict if up else features.down_unigram_dict
         uniprob = features.up_unigram_prob if up else features.down_unigram_prob
         bidict = features.up_bigram_dict if up else features.down_bigram_dict
         biprob = features.up_bigram_prob if up else features.down_bigram_prob
 
+        # Add unigram counts and recalc probabilities
         for key in ngrams['uni']:
             unidict[key] = unidict.get(key,0) + 1
             if key in uniprob:
@@ -93,6 +100,7 @@ class Judge(webapp.RequestHandler):
             else:
                 uniprob[key] = log(1.0/denom)
 
+        # Add bigram counts and recalc probabilities
         for key in ngrams['bi']:
             bidict[key] = bidict.get(key,0) + 1
             if key in biprob:
@@ -100,7 +108,7 @@ class Judge(webapp.RequestHandler):
             else:
                 biprob[key] = log(1.0/denom)
 
-        # Write Features to Datastore
+        # Save updated Features Set to Datastore
         features.put()
         if not user.feature_profile:
             user.feature_profile = features.key()
@@ -131,8 +139,19 @@ class Judge(webapp.RequestHandler):
         #self.redirect('/')
             
 class MainPage(webapp.RequestHandler):
+    def classify(self, features):
+        posts = db.GqlQuery("SELECT * FROM Node ORDER BY points DESC LIMIT 25")
+        b = Break()
+        for post in posts:
+            ngrams = b.breakout(post)
+            for n in ngrams['uni']:
+                if n in features.up_unigram_dict:
+                    self.response.out.write('UP: %s : %s<BR>' %(n, features.up_unigram_dict[n]))
+                if n in features.down_unigram_dict:
+                    self.response.out.write('DOWN: %s : %s<BR>' %(n, features.down_unigram_dict[n]))
+                    
+            
     def get(self):
-
         temp_user = users.get_current_user()
         if temp_user:
             user = db.GqlQuery("SELECT * FROM User WHERE user_id = '%s'" % temp_user.user_id()).get()
@@ -143,8 +162,11 @@ class MainPage(webapp.RequestHandler):
                 new_user.put()
                 user = new_user                
 
-            posts = db.GqlQuery("SELECT * FROM Node ORDER BY points DESC LIMIT 20")
-            
+            if not user.feature_profile:
+                posts = db.GqlQuery("SELECT * FROM Node ORDER BY points DESC LIMIT 20")
+            else:
+                posts = self.classify(user.feature_profile)
+                
             template_values = {'user': users.get_current_user(),
                                'logout_url': users.create_logout_url("/"),
                                'posts': posts}
