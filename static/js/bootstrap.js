@@ -17,15 +17,24 @@
  * limitations under the License.
  * ========================================================== */
 
+ function purgePost(div, key) {
+
+     $.ajax({url: '/vote?key='+ key + "dir=down", context: document.body, type: 'POST'});
+     div.parent().parent().parent().fadeOut("slow");
+     return false
+
+ }
+
+
 !function( $ ) {
 
   $(function () {
 
-    "use strict"
-
+      "use strict"
+          
     /* CSS TRANSITION SUPPORT (https://gist.github.com/373874)
      * ======================================================= */
-
+     
     $.support.transition = (function () {
       var thisBody = document.body || document.documentElement
         , thisStyle = thisBody.style
