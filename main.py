@@ -1,25 +1,4 @@
-'''
-THINGS TO-DO:
-------------
--Build scraper
--Build system to pull things out of db and show them for user
--Build system to rank an article and save rank info
--Build classifier
-
-BUGS:
-------------
-
-
-###########################################################################################
-
-DONE
--------------
--Build model
-
-'''
-
 import os
-
 import datetime
 import json
 import urllib2
