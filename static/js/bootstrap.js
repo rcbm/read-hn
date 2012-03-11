@@ -19,7 +19,7 @@
 
  function purgePost(div, key) {
 
-     $.ajax({url: '/vote?key='+ key + "dir=down", context: document.body, type: 'POST'});
+     $.ajax({url: '/vote?key='+ key + "&dir=down", context: document.body, type: 'POST'});
      div.parent().parent().parent().fadeOut("slow");
      return false
 
