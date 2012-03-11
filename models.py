@@ -49,12 +49,14 @@ class StopWord(db.Model):
     word = db.StringProperty(required=True)
 
 class Features(db.Model):
+    updated = db.DateTimeProperty(auto_now=True)
+    #stories = db.ListProperty(db.Key)
     num_down = db.IntegerProperty()
     num_up = db.IntegerProperty()
-    #stories = db.ListProperty(db.Key)
-    updated = db.DateTimeProperty(auto_now=True)
     unigram_dict = DictProperty(db.StringProperty)
+    unigram_prob = db.FloatProperty()
     bigram_dict = DictProperty(db.StringProperty)
+    bigram_prob = db.FloatProperty()
     
 class User(db.Model):
     user = db.UserProperty(required=True)

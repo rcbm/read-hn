@@ -71,12 +71,16 @@ class Judge(webapp.RequestHandler):
         user = users.get_current_user()
         ngrams = self.breakout(self.request.get("key"))
         user = db.GqlQuery("SELECT * FROM User WHERE user_id = '%s'" % users.get_current_user().user_id()).get()
-
+        print 'test'
+        
+        
         if not user.feature_profile:
             feature = Features(num_down = 1,
                                unigram_dict = ngrams['uni'],
-                               bigram_dict = ngrams['bi'])
-            feature.put()
+                               unigram_prob = dict((key, 1) for key in ngrams['uni'].keys()),
+                               bigram_dict = ngrams['bi'],
+                               bigram_prob = dict((key, 1) for key in ngrams['bi'].keys()))
+                               
             user.feature_profile = feature.key()
             user.put()
         else:
@@ -91,7 +95,7 @@ class Judge(webapp.RequestHandler):
             for key in ngrams['bi']:
                 bidict[key] = bidict.get(key,0) + 1
             features.put()
-        self.redirect('/')
+        #self.redirect('/')
             
 class MainPage(webapp.RequestHandler):
     def get(self):
@@ -203,4 +207,5 @@ class Scrape(webapp.RequestHandler):
                 'whoever', 'whole', 'whom', 'whose', 'why', 'will', 
                 'with', 'within', 'without', 'would', 'yet', 'you', 'your', 'yours', 
                 'yourself', 'yourselves']
+
         db.put([StopWord(word = x) for x in dict])
