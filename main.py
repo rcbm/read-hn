@@ -24,18 +24,13 @@ import datetime
 import json
 import urllib2
 import logging
+from math import log, exp
 from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
 from google.appengine.api import users
 from google.appengine.api import taskqueue
 from models import *
-
-'''
-When a user X's out a story, a get request is called w/ the key to /vote -> Judge
-- Judge calls the breakout method
-  
-'''
 
 class Judge(webapp.RequestHandler):
     def breakout(self, key):
@@ -44,15 +39,19 @@ class Judge(webapp.RequestHandler):
         
         import re
         punct = re.compile(r'[.?!,":;]') 
-
+        
+        # Load stopwords
+        stopwords = [str(x.word) for x in db.GqlQuery("SELECT * FROM StopWord").fetch(1000)]
+        
         # Strip punct and break down into unigrams
         unigrams = word_list = re.split('\s+', title)
-        unigrams = [punct.sub("", w) for w in unigrams]
+        unigrams = [punct.sub("", str(w)) for w in unigrams]
 
         # Count unigrams
         uni_freq_dict = {}
-        for word in unigrams:
-            uni_freq_dict[word] = uni_freq_dict.get(word,0) + 1
+        for word in [w.lower() for w in unigrams]:
+            if word not in stopwords:
+                uni_freq_dict[word] = uni_freq_dict.get(word,0) + 1
         
         # Break down into bigrams
         bigrams = []
@@ -68,33 +67,69 @@ class Judge(webapp.RequestHandler):
                 'bi': bi_freq_dict}
 
     def get(self):
-        user = users.get_current_user()
+        temp_user = users.get_current_user()
+        user = db.GqlQuery("SELECT * FROM User WHERE user_id = '%s'" % temp_user.user_id()).get()
+        dir = self.request.get("dir")
         ngrams = self.breakout(self.request.get("key"))
-        user = db.GqlQuery("SELECT * FROM User WHERE user_id = '%s'" % users.get_current_user().user_id()).get()
-        print 'test'
         
-        
+        # User doesn't have a features profile yet, so set up a new one
         if not user.feature_profile:
-            feature = Features(num_down = 1,
-                               unigram_dict = ngrams['uni'],
-                               unigram_prob = dict((key, 1) for key in ngrams['uni'].keys()),
+            features = Features(unigram_dict = ngrams['uni'],
+                               unigram_prob = dict((key, 0.0) for key in ngrams['uni'].keys()),
                                bigram_dict = ngrams['bi'],
-                               bigram_prob = dict((key, 1) for key in ngrams['bi'].keys()))
-                               
-            user.feature_profile = feature.key()
+                               bigram_prob = dict((key, 0.0) for key in ngrams['bi'].keys()))
+            if dir == 'down':
+                features.num_down = 1
+            else:
+                features.num_up = 1
+            features.put()
+
+            user.feature_profile = features.key()
             user.put()
+            self.redirect('/')
+
         else:
             features = user.feature_profile
-            features.num_down += 1
-
+            if dir == 'down':
+                features.num_down += 1
+            else:
+                features.num_up += 1
+                
+            num = features.num_down
+            
             # Increase counts in the dictionaries
             unidict = features.unigram_dict
+            uniprob = features.unigram_prob
             bidict = features.bigram_dict
+            biprob = features.bigram_prob
+
+            print ''
+            print 'NUMDOWN: %s' %num
+            print 'EXISTING PROBABILITIES'
+            print '-------------------------\n'
+            for key,value in uniprob.iteritems():
+                print '%s: %s' %(key, value)
+            print ''
+            for key,value in biprob.iteritems():
+                print '%s: %s' %(key, value)
+            print ''
+
             for key in ngrams['uni']:
                 unidict[key] = unidict.get(key,0) + 1
+                if key in uniprob:
+                    uniprob[key] = uniprob[key] + log(1.0/features.num_down)
+                else:
+                    uniprob[key] = log(1.0/features.num_down)
+
             for key in ngrams['bi']:
                 bidict[key] = bidict.get(key,0) + 1
+                if key in biprob:
+                    biprob[key] = biprob[key] + log(1.0/features.num_down)
+                else:
+                    biprob[key] = log(1.0/features.num_down)
+
             features.put()
+
         #self.redirect('/')
             
 class MainPage(webapp.RequestHandler):
@@ -169,7 +204,7 @@ class Scrape(webapp.RequestHandler):
                 'due', 'during', 'each', 'eg', 'eight', 'either', 
                 'eleven', 'else', 'elsewhere', 'empty', 'enough', 'etc', 'even', 'ever', 'every', 
                 'everyone', 'everything', 'everywhere', 'except', 'few', 'fifteen', 
-                'fify', 'fill', 'find', 'fire', 'first', 'five', 
+                'fifty', 'fill', 'find', 'fire', 'first', 'five', 
                 'for', 'former', 'formerly', 'forty', 'found', 'four', 
                 'from', 'front', 'full', 'further', 'get', 'give', 
                 'go', 'had', 'has', 'hasnt', 'have', 'he', 
@@ -206,6 +241,7 @@ class Scrape(webapp.RequestHandler):
                 'wherever', 'whether', 'which', 'while', 'whither', 'who', 
                 'whoever', 'whole', 'whom', 'whose', 'why', 'will', 
                 'with', 'within', 'without', 'would', 'yet', 'you', 'your', 'yours', 
-                'yourself', 'yourselves']
+                'yourself', 'yourselves','1','2','3','4','5','6','7','8','9','0','-',
+                '?',']',')','}','[','(','{',';','|',':']
 
         db.put([StopWord(word = x) for x in dict])

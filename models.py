@@ -50,13 +50,22 @@ class StopWord(db.Model):
 
 class Features(db.Model):
     updated = db.DateTimeProperty(auto_now=True)
-    #stories = db.ListProperty(db.Key)
-    num_down = db.IntegerProperty()
-    num_up = db.IntegerProperty()
-    unigram_dict = DictProperty(db.StringProperty)
-    unigram_prob = db.FloatProperty()
-    bigram_dict = DictProperty(db.StringProperty)
-    bigram_prob = db.FloatProperty()
+
+    #down_stories = db.ListProperty(db.Key)
+    #up_stories = db.ListProperty(db.Key)
+
+    num_down = db.IntegerProperty(default=0)
+    num_up = db.IntegerProperty(default=0)
+    
+    down_unigram_dict = DictProperty()
+    down_unigram_prob = DictProperty()
+    down_bigram_dict = DictProperty()
+    down_bigram_prob = DictProperty()
+
+    up_unigram_dict = DictProperty()
+    up_unigram_prob = DictProperty()
+    up_bigram_dict = DictProperty()
+    up_bigram_prob = DictProperty()
     
 class User(db.Model):
     user = db.UserProperty(required=True)
