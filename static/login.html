@@ -23,9 +23,7 @@
 
     <!-- Le fav and touch icons -->
     <link rel="shortcut icon" href="img/favicon.ico">
-    <script src="js/bootstrap.js"></script>
-    <script src="js/jquery-1.7.1.min.js"></script> 
-	</head>
+  </head>
 
   <body>
 
@@ -66,10 +64,10 @@
 			</br>
 			{% if posts.0 %}	
 					{% for post in posts %}	
-							<div id="{{post}}" class="row" style="border-bottom-color: #FFFFFF;border-bottom-style: solid;border-bottom-width: 1px;padding: 20px;background-color: {% cycle #DDD,#EEE %}">
+							<div class="row" style="border-bottom-color: #FFFFFF;border-bottom-style: solid;border-bottom-width: 1px;padding: 20px;background-color: {% cycle #DDD,#EEE %}">
 				        <div class="row">  
 									<div class="span12">
-											<span id="upvote{{post}}"><i class="icon-arrow-up"></i></span>
+											<a href="#"><i class="icon-arrow-up"></i></a>
 											<a href="/vote?key={{ post.key }}"><i class="icon-arrow-down"></i></a>
 											<a href="{{post.url}}" style="margin-left: 5px; font-size: 20px; font-weight: 200"> {{post.title}} </a>
 										</div>
@@ -82,12 +80,6 @@
 										</div>
 								</div>
 							</div>
-							<script>
-							$("upvote{{post}}").click(function() {
-							  $('{{post}}').fadeOut('slow', function() {
-							  });
-							});
-							</script>
 					{% endfor %}
 			{% endif %}
 			
@@ -96,7 +88,7 @@
     <!-- Le javascript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
-
+    <script src="js/bootstrap.js"></script>
 
   </body>
 </html>
