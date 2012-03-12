@@ -1,3 +1,5 @@
+import re
+import math
 import os
 import datetime
 import json
@@ -11,74 +13,274 @@ from google.appengine.api import users
 from google.appengine.api import taskqueue
 from models import *
 
-class Break():
-    def breakout(self, story):
-        import re
-        import unicodedata
-        title = story.title
-        punct = re.compile(r'[.?!,":;]') 
-        
-        # Load stopwords
-        stopwords = [str(x.word) for x in db.GqlQuery("SELECT * FROM StopWord").fetch(1000)]
-        
-        # Strip punct and break down into unigrams
-        unigrams = word_list = re.split('\s+', title)
-        unigrams = [punct.sub("", str(unicodedata.normalize('NFKD', w).encode('ascii','ignore'))) for w in unigrams]
+def getwords(doc):
+    splitter = re.compile('\\W*')
+    # Split the words by non-alpha characters
+    words = [s.lower() for s in splitter.split(doc)
+             if len(s) > 2 and len(s) < 20]
 
-        # Count unigrams
-        uni_freq_dict = {}
-        for word in [w.lower() for w in unigrams]:
-            if word not in stopwords:
-                uni_freq_dict[word] = uni_freq_dict.get(word,0) + 1
-        
-        # Break down into bigrams
-        bigrams = []
-        for index, x in enumerate(unigrams):
-            if (index + 1) < len(unigrams):
-                bigrams.append((x, unigrams[index + 1]))
+    # Return the unique set of words only
+    return dict([(w,1) for w in words])
 
-        # Count bigrams
-        bi_freq_dict = {}
-        for b in bigrams: bi_freq_dict[b] = bi_freq_dict.get(b,0) + 1
+'''
+def getwords(story, stopwords):
+    from unicodedata import normalize
+    title = story.title
+    punct = re.compile(r'[.?!,":;]') 
 
-        return {'uni': uni_freq_dict,
-                'bi': bi_freq_dict}
-    
-    
-class Judge(webapp.RequestHandler):
-    def get(self):
-        temp_user = users.get_current_user()
+    # Split tokens
+    words = word_list = re.split('\s+', title)
+
+    # Normalize into strings
+    words = [normalize('NFKD', w).encode('ascii','ignore') for w in words]
+
+    # Remove punctuation and convert to lowercase
+    words = [punct.sub("", str(w.lower())) for w in words]
+
+    # Remove stop words
+    words = [w for w in words if w not in stopwords]
+
+    return dict([(w, 1) for w in words])
+'''
+
+class classifier:
+    def __init__(self,getfeatures,filename = None):
+        # Load story
         key = self.request.get("key")
         story = db.get(key)
-        ngrams = Break().breakout(story)
-        user = db.GqlQuery("SELECT * FROM User WHERE user_id = '%s'" % temp_user.user_id()).get()
-        up = True if self.request.get("dir") == 'up' else False
-        features = Features() if not user.feature_profile else user.feature_profile
-        numdown = features.num_down
-        numup = features.num_up
-        denom = numup if up else numdown
 
-        if up:
-            features.num_up += 1
-            features.up_stories.append(story.key())
+        # Counts of feature/category combinations
+        self.fc = {}
+
+        # Counts of documents in each category
+        self.cc = {}
+        self.getfeatures = getfeatures
+
+    # Increase the count of a feature/category pair
+    def incf(self,f,cat):
+        self.fc.setdefault(f,{})
+        self.fc[f].setdefault(cat,0)
+        self.fc[f][cat] += 1
+
+    # Increase the count of a category
+    def incc(self,cat):
+        self.cc.setdefault(cat,0)
+        self.cc[cat] += 1
+
+    # The number of times a feature has appeared in a category
+    def fcount(self,f,cat):
+        if f in self.fc and cat in self.fc[f]:
+            return float(self.fc[f][cat])
+        return 0.0
+
+    # The number of items in a category
+    def catcount(self,cat):
+        if cat in self.cc:
+            return float(self.cc[cat])
+        return 0
+
+    # The total number of items
+    def totalcount(self):
+        return sum(self.cc.values())
+
+    # The list of all categories
+    def categories(self):
+        return self.cc.keys()
+    
+    # Calculate weighted probabilities
+    def weightedprob(self,f,cat,prf,weight=1.0,ap=0.5):
+        # Calculate current probability
+        basicprob = prf(f,cat)
+
+        # Count the number of times this feature has appeared in
+        # all categories
+        totals = sum([self.fcount(f,c) for c in self.categories()])
+
+        # Calculate the weighted average
+        bp=((weight * ap) + (totals *basicprob))/(weight + totals)
+        return bp
+
+    
+    # Calculate probabilities
+    def fprob(self,f,cat):
+        if self.catcount(cat) == 0: return 0
+        # The total number of times this feature appeared in this
+        # category divided by the total number of items in this category
+        return self.fcount(f,cat)/self.catcount(cat)
+
+    
+    def train(self,item,cat):
+        features = self.getfeatures(item)
+        # Increment the count for every feature with this category
+        for f in features:
+            self.incf(f,cat)
+
+        # Increment the count for this category
+        self.incc(cat)
+
+class naivebayes(classifier):
+  
+  def __init__(self,getfeatures):
+    classifier.__init__(self,getfeatures)
+    self.thresholds={}
+  
+  def docprob(self,item,cat):
+    features=self.getfeatures(item)   
+
+    # Multiply the probabilities of all the features together
+    p=1
+    for f in features: p*=self.weightedprob(f,cat,self.fprob)
+    return p
+
+  def prob(self,item,cat):
+    catprob=self.catcount(cat)/self.totalcount()
+    docprob=self.docprob(item,cat)
+    return docprob*catprob
+  
+  def setthreshold(self,cat,t):
+    self.thresholds[cat]=t
+    
+  def getthreshold(self,cat):
+    if cat not in self.thresholds: return 1.0
+    return self.thresholds[cat]
+  
+  def classify(self,item,default=None):
+    probs={}
+    # Find the category with the highest probability
+    max=0.0
+    for cat in self.categories():
+      probs[cat]=self.prob(item,cat)
+      if probs[cat]>max: 
+        max=probs[cat]
+        best=cat
+
+    # Make sure the probability exceeds threshold*next best
+    for cat in probs:
+      if cat==best: continue
+      if probs[cat]*self.getthreshold(best)>probs[best]: return default
+    return best
+
+'''
+def countwords(words):
+    # Count unigrams
+    uni_freq_dict = {}
+    for word in words:
+        uni_freq_dict[word] = uni_freq_dict.get(word,0) + 1
+
+    # Break down into bigrams
+    bigrams = []
+    for index, x in enumerate(words):
+        if (index + 1) < len(words):
+            bigrams.append((x, words[index + 1]))
+
+    # Count bigrams
+    bi_freq_dict = {}
+    for b in bigrams: bi_freq_dict[b] = bi_freq_dict.get(b,0) + 1
+
+    return {'uni': uni_freq_dict,
+            'bi': bi_freq_dict}
+'''
+
+    
+class Judge(webapp.RequestHandler):
+
+    '''
+    # Increases the count for a direction of a feature
+    def increaseCount(self, dict, feature, dir):
+        dict.setdefault(feature, {})
+        dict[feature].setdefault(dir, 0)
+        dict[feature][dir] += 1
+
+    def getfeaturecount(self, dict, feature, dir):
+        if feature in dict and dir in dict[feature]:
+            return float(self.dict[feature][dir])
         else:
-            features.num_down += 1
-            features.down_stories.append(story.key())
+            return 0.0
+
+    def getdircount(self, dir, dircount):
+        if dir in dircount:
+            return float(dircount[dir])
+        else:
+            return 0
+
+    def gettotalcount(self, dircount):
+        return sum(dircount.values())
+
+    def getcategories(self, dircount):
+        return dircount.keys()
+
+    def weightedprob(self, feature, dir, prf, weight = 1.0, ap = .5):
+        # Calculate current probability
+        basicprob = prf(feature, dir)
+
+        # Count the number of times this feature has appeared in all
+        # categories
+        totals = sum([dict(feature, dir) for dir in getcategories()])
+        print totals
+    '''
+
+    def get(self):
+        # Load user
+        user = users.get_current_user()
+        user = db.GqlQuery("SELECT * FROM User WHERE user_id = '%s'" % user.user_id()).get()
+
+
+        # Clasisfy(key)
         
-        # Map the correct features depending on the direction
-        unidict = features.up_unigram_dict if up else features.down_unigram_dict
-        uniprob = features.up_unigram_prob if up else features.down_unigram_prob
-        bidict = features.up_bigram_dict if up else features.down_bigram_dict
-        biprob = features.up_bigram_prob if up else features.down_bigram_prob
+        # Which direction was clicked?
+        dir = str(self.request.get("dir"))
+        up = True if dir == 'up' else False
 
-        # Add unigram counts and recalc probabilities
-        for key in ngrams['uni']:
-            unidict[key] = unidict.get(key,0) + 1
+        print ''
+        print 'blah'
+        cl = naivebayes(getwords)
+        #sampletrain(cl)
+        """
+        print cl.classify('quick rabbit', default='unknown')
+        print cl.classify('quick money', default='unknown')
+        cl.setthreshold('bad',3.0)
+        print cl.classify('quick money', default='unknown')
+        for i in range(10):
+            sampletrain(cl)
+        print cl.classify('quick money', default='unknown')
+        """
+        
+        # Load stopwords
+        #stopwords = [str(x.word) for x in db.GqlQuery("SELECT * FROM StopWord").fetch(1000)]
+
+        # Load N-Grams
+        #words = getwords(story, stopwords)
+        #ngrams = countwords(words)
+        
+        """
+
+        # Increment direction count
+        features.dircount.setdefault(dir, 0)
+        features.dircount[dir] += 1
+
+        # Store the story key
+        features.stories.setdefault(dir, [])
+        features.stories[dir].append(story.key())
+
+        denom = features.dircount[dir]
+        
+        
+        
+        for word in ngrams['uni']:
+
+            # Add unigram counts
+            self.increaseCount(unidict, word, dir)
+        
+            
+            '''
+            # Re-Calc probabilities
             if key in uniprob:
-                uniprob[key] = uniprob[key] + log(1.0/denom)
+                features.uniprob[key] = features.uniprob[key] + log(1.0/denom)
             else:
-                uniprob[key] = log(1.0/denom)
+                features.uniprob[key] = log(1.0/denom)
+            '''
 
+        '''
         # Add bigram counts and recalc probabilities
         for key in ngrams['bi']:
             bidict[key] = bidict.get(key,0) + 1
@@ -86,7 +288,8 @@ class Judge(webapp.RequestHandler):
                 biprob[key] = biprob[key] + log(1.0/denom)
             else:
                 biprob[key] = log(1.0/denom)
-
+        '''
+        
         # Save updated Features Set to Datastore
         features.put()
         if not user.feature_profile:
@@ -94,35 +297,43 @@ class Judge(webapp.RequestHandler):
             user.put()
         
         print ''
-        print 'NUMDOWN: %s' %numdown
-        print 'NUMUP: %s\n' %numup
+        print 'COUNTS'
+        print features.dircount
 
-        print 'DOWN PROBABILITIES'
-        print '-------------------------\n'
-        for key,value in features.down_unigram_prob.iteritems():
-            print '%s: %s' %(key, value)
         print ''
-        for key,value in features.down_bigram_prob.iteritems():
-            print '%s: %s' %(key, value)
-        print '\n'
+        print 'STORIES'
+        print [(dir, len(dir)) for dir in features.stories]
+        
+        print ''
+        print 'DICTS'
+        print '-------------------------\n'
+        for i in features.unidict:
+            print i, unidict[i]
 
-        print 'UP PROBABILITIES'
+        print ''
+        print 'PROBABILITIES'
         print '-------------------------\n'
-        for key,value in features.up_unigram_prob.iteritems():
-            print '%s: %s' %(key, value)
+        for i in features.uniprob:
+            print i, uniprob[i]
         print ''
-        for key,value in features.up_bigram_prob.iteritems():
-            print '%s: %s' %(key, value)
-        print ''
+
+        #for key,value in features.down_bigram_prob.iteritems():
+        #    print '%s: %s' %(key, value)
+        #print '\n'
+
+        #for key,value in features.up_bigram_prob.iteritems():
+        #    print '%s: %s' %(key, value)
+        #print ''
 
         #self.redirect('/')
-            
+        """ 
 class MainPage(webapp.RequestHandler):
+    '''
     def classify(self, features):
         posts = db.GqlQuery("SELECT * FROM Node ORDER BY points DESC LIMIT 100")
-        b = Break()
+        good_posts = []
         for post in posts:
-            ngrams = b.breakout(post)
+            ngrams = getwords(post)
             downprob = 0.0
             upprob = 0.0
             for n in ngrams['uni']:
@@ -133,17 +344,21 @@ class MainPage(webapp.RequestHandler):
                     downprob += features.down_unigram_prob[n]
                     #self.response.out.write('DOWN: %s : %s<BR>' %(n, features.down_unigram_prob[n]))
 
+            ##
             # Weight bigrams 2x as much as unigrams?
+            ##
                     
             if fabs(downprob) - fabs(upprob) <= 0:
                 if fabs(upprob) > 0:
                     self.response.out.write('<i><b>%s</b></i><br>' %post.title)
+                    good_posts.append(post)
                 else:
                     self.response.out.write('%s<br>' %post.title)
             else:
                 self.response.out.write('<font color="#ddd">%s</font><br>' %post.title)
             #self.response.out.write('ID: %s | UP: %s | DOWN: %s<br>' %(post.hn_id, upprob, downprob))
-            
+        #return good_posts
+    '''
     def get(self):
         temp_user = users.get_current_user()
         if temp_user:
@@ -155,10 +370,10 @@ class MainPage(webapp.RequestHandler):
                 new_user.put()
                 user = new_user                
 
-            if not user.feature_profile:
-                posts = db.GqlQuery("SELECT * FROM Node ORDER BY points DESC LIMIT 100")
-            else:
-                posts = self.classify(user.feature_profile)
+            #if not user.feature_profile:
+            posts = db.GqlQuery("SELECT * FROM Node ORDER BY points DESC LIMIT 100")
+            #else:
+            #    posts = self.classify(user.feature_profile)
                 
             template_values = {'user': users.get_current_user(),
                                'logout_url': users.create_logout_url("/"),
@@ -172,28 +387,30 @@ class Scrape(webapp.RequestHandler):
     def get(self):
         self.loadStopWords()
         user = users.get_current_user()
-        if user:  
+        if user:
             base = 'http://api.thriftdb.com/api.hnsearch.com/items/_search?'
             url = base + '%s%s%s' % ('&filter[fields][create_ts]=[NOW-24HOURS%20TO%20NOW]',
-                                         '&limit=100',
-                                         '&filter[fields][type]=submission')
-            logging.info('URL - %s' %url)
-            response = urllib2.urlopen(url)
-            content = json.loads(response.read())
-            for item in content['results']:
-                if not db.GqlQuery("SELECT * FROM Node WHERE hn_id = %s" % item['item']['id']).get(): 
-                    i = item['item']
-                    scraped_content = Node(hn_id = i['id'],
-                                           type = i['type'],
-                                           url = i['url'] if i['url'] else "http://news.ycombinator.com/item?id=%s" % id, 
-                                           domain = i['domain'] if i['domain'] else "http://news.ycombinator.com/",
-                                           title = i['title'],
-                                           commentcount = i['num_comments'],
-                                           username = i['username'],
-                                           points = i['points'],
-                                           #timestamp = i['create_ts'],
-                                           )
-                    scraped_content.put()
+                                     '&limit=100',
+                                     '&filter[fields][type]=submission')
+            for x in range(10):
+                req = url + '&start=%s' % (x * 100)
+                logging.info('URL - %s' %req)
+                response = urllib2.urlopen(req)
+                content = json.loads(response.read())
+                for item in content['results']:
+                    if not db.GqlQuery("SELECT * FROM Node WHERE hn_id = %s" % item['item']['id']).get(): 
+                        i = item['item']
+                        scraped_content = Node(hn_id = i['id'],
+                                               type = i['type'],
+                                               url = i['url'] if i['url'] else "http://news.ycombinator.com/item?id=%s" % id, 
+                                               domain = i['domain'] if i['domain'] else "http://news.ycombinator.com/",
+                                               title = i['title'],
+                                               commentcount = i['num_comments'],
+                                               username = i['username'],
+                                               points = i['points'],
+                                               #timestamp = i['create_ts'],
+                                               )
+                        scraped_content.put()
                 
                             
         else: 
