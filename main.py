@@ -1,10 +1,10 @@
 import re
-import math
 import os
 import datetime
 import json
 import urllib2
 import logging
+from unicodedata import normalize
 from math import log, exp, fabs
 from google.appengine.ext import db
 from google.appengine.ext import webapp
@@ -13,68 +13,57 @@ from google.appengine.api import users
 from google.appengine.api import taskqueue
 from models import *
 
-def getwords(doc):
-    splitter = re.compile('\\W*')
+def getwords(text, stopwords):
     # Split the words by non-alpha characters
-    words = [s.lower() for s in splitter.split(doc)
+    words = [s.lower() for s in re.compile('\\W*').split(text)
              if len(s) > 2 and len(s) < 20]
-
-    # Return the unique set of words only
-    return dict([(w,1) for w in words])
-
-'''
-def getwords(story, stopwords):
-    from unicodedata import normalize
-    title = story.title
-    punct = re.compile(r'[.?!,":;]') 
-
-    # Split tokens
-    words = word_list = re.split('\s+', title)
-
-    # Normalize into strings
-    words = [normalize('NFKD', w).encode('ascii','ignore') for w in words]
-
-    # Remove punctuation and convert to lowercase
-    words = [punct.sub("", str(w.lower())) for w in words]
 
     # Remove stop words
     words = [w for w in words if w not in stopwords]
 
     return dict([(w, 1) for w in words])
-'''
 
 class classifier:
-    def __init__(self,getfeatures,filename = None):
-        # Load story
-        key = self.request.get("key")
-        story = db.get(key)
+    def __init__(self, user, getfeatures):
+        self.user = user
 
-        # Counts of feature/category combinations
-        self.fc = {}
+        # Load stopwords
+        self.stopwords = [str(x.word) for x in db.GqlQuery("SELECT * FROM StopWord").fetch(1000)]
+
+        # Load Existing Feature Profile
+        if not user.feature_profile:
+            self.db_features = Features()
+        else:
+            self.db_features = user.feature_profile
+
+        # Counts of feature combinations
+        self.fc = self.db_features.unidict
+
+        # Counts of categories
+        self.cc = self.db_features.dircount
 
         # Counts of documents in each category
-        self.cc = {}
         self.getfeatures = getfeatures
 
     # Increase the count of a feature/category pair
-    def incf(self,f,cat):
-        self.fc.setdefault(f,{})
-        self.fc[f].setdefault(cat,0)
+    def incf(self, f, cat):
+        self.fc.setdefault(f, {})
+        self.fc[f].setdefault(cat, 0)
         self.fc[f][cat] += 1
 
     # Increase the count of a category
-    def incc(self,cat):
-        self.cc.setdefault(cat,0)
+    def incc(self, cat):
+        self.cc.setdefault(cat, 0)
         self.cc[cat] += 1
-
+        
     # The number of times a feature has appeared in a category
-    def fcount(self,f,cat):
+    def fcount(self, f, cat):
         if f in self.fc and cat in self.fc[f]:
             return float(self.fc[f][cat])
         return 0.0
 
     # The number of items in a category
-    def catcount(self,cat):
+    def catcount(self, cat):
         if cat in self.cc:
             return float(self.cc[cat])
         return 0
@@ -88,183 +77,165 @@ class classifier:
         return self.cc.keys()
     
     # Calculate weighted probabilities
-    def weightedprob(self,f,cat,prf,weight=1.0,ap=0.5):
+    def weightedprob(self, f, cat, prf, weight=1.0, ap=0.5):
         # Calculate current probability
         basicprob = prf(f,cat)
 
-        # Count the number of times this feature has appeared in
-        # all categories
+        # Count the how often this feature has appeared in all categories
         totals = sum([self.fcount(f,c) for c in self.categories()])
 
         # Calculate the weighted average
-        bp=((weight * ap) + (totals *basicprob))/(weight + totals)
+        bp = ((weight * ap) + (totals * basicprob)) / (weight + totals)
         return bp
 
     
     # Calculate probabilities
-    def fprob(self,f,cat):
+    def fprob(self, f, cat):
         if self.catcount(cat) == 0: return 0
         # The total number of times this feature appeared in this
         # category divided by the total number of items in this category
         return self.fcount(f,cat)/self.catcount(cat)
-
     
-    def train(self,item,cat):
-        features = self.getfeatures(item)
+    def train(self, item, cat):
+        features = self.getfeatures(item, self.stopwords)
         # Increment the count for every feature with this category
         for f in features:
             self.incf(f,cat)
 
         # Increment the count for this category
         self.incc(cat)
+        
+        # Save updated Features Set to Datastore
+        self.db_features.put()
+        if not self.user.feature_profile:
+            self.user.feature_profile = self.db_features.key()
+            self.user.put()
 
+            
 class naivebayes(classifier):
   
-  def __init__(self,getfeatures):
-    classifier.__init__(self,getfeatures)
-    self.thresholds={}
+  def __init__(self, user, getfeatures):
+    classifier.__init__(self, user, getfeatures)
+    self.thresholds = {}
   
-  def docprob(self,item,cat):
-    features=self.getfeatures(item)   
+  def docprob(self, item, cat):
+    features = self.getfeatures(item, self.stopwords)   
 
     # Multiply the probabilities of all the features together
-    p=1
-    for f in features: p*=self.weightedprob(f,cat,self.fprob)
+    p = 1
+    for f in features:
+        p *= self.weightedprob(f, cat, self.fprob)
     return p
 
-  def prob(self,item,cat):
-    catprob=self.catcount(cat)/self.totalcount()
-    docprob=self.docprob(item,cat)
-    return docprob*catprob
+  def prob(self, item, cat):
+    catprob = self.catcount(cat) / self.totalcount()
+    docprob = self.docprob(item, cat)
+    return docprob * catprob
   
-  def setthreshold(self,cat,t):
-    self.thresholds[cat]=t
-    
-  def getthreshold(self,cat):
-    if cat not in self.thresholds: return 1.0
+  
+  def setthreshold(self, cat, t):
+    self.thresholds[cat] = t
+
+  def getthreshold(self, cat):
+    if cat not in self.thresholds:
+        return 1.0
     return self.thresholds[cat]
   
-  def classify(self,item,default=None):
-    probs={}
+  def classify(self, item, default=None):
+    probs = {}
     # Find the category with the highest probability
-    max=0.0
+    max = 0.0
     for cat in self.categories():
-      probs[cat]=self.prob(item,cat)
-      if probs[cat]>max: 
-        max=probs[cat]
-        best=cat
+      probs[cat] = self.prob(item, cat)
+      if probs[cat] > max: 
+        max = probs[cat]
+        best = cat
 
-    # Make sure the probability exceeds threshold*next best
+    # Make sure the probability exceeds threshold * next best
     for cat in probs:
-      if cat==best: continue
-      if probs[cat]*self.getthreshold(best)>probs[best]: return default
+      if cat == best:
+          continue
+      if probs[cat] * self.getthreshold(best) > probs[best]:
+          return default
     return best
 
-'''
-def countwords(words):
-    # Count unigrams
-    uni_freq_dict = {}
-    for word in words:
-        uni_freq_dict[word] = uni_freq_dict.get(word,0) + 1
-
-    # Break down into bigrams
-    bigrams = []
-    for index, x in enumerate(words):
-        if (index + 1) < len(words):
-            bigrams.append((x, words[index + 1]))
-
-    # Count bigrams
-    bi_freq_dict = {}
-    for b in bigrams: bi_freq_dict[b] = bi_freq_dict.get(b,0) + 1
-
-    return {'uni': uni_freq_dict,
-            'bi': bi_freq_dict}
-'''
 
     
 class Judge(webapp.RequestHandler):
-
-    '''
-    # Increases the count for a direction of a feature
-    def increaseCount(self, dict, feature, dir):
-        dict.setdefault(feature, {})
-        dict[feature].setdefault(dir, 0)
-        dict[feature][dir] += 1
-
-    def getfeaturecount(self, dict, feature, dir):
-        if feature in dict and dir in dict[feature]:
-            return float(self.dict[feature][dir])
-        else:
-            return 0.0
-
-    def getdircount(self, dir, dircount):
-        if dir in dircount:
-            return float(dircount[dir])
-        else:
-            return 0
-
-    def gettotalcount(self, dircount):
-        return sum(dircount.values())
-
-    def getcategories(self, dircount):
-        return dircount.keys()
-
-    def weightedprob(self, feature, dir, prf, weight = 1.0, ap = .5):
-        # Calculate current probability
-        basicprob = prf(feature, dir)
-
-        # Count the number of times this feature has appeared in all
-        # categories
-        totals = sum([dict(feature, dir) for dir in getcategories()])
-        print totals
-    '''
-
     def get(self):
         # Load user
         user = users.get_current_user()
         user = db.GqlQuery("SELECT * FROM User WHERE user_id = '%s'" % user.user_id()).get()
 
-
-        # Clasisfy(key)
+        # Load story
+        key = self.request.get("key")
+        story = db.get(key)
         
         # Which direction was clicked?
         dir = str(self.request.get("dir"))
         up = True if dir == 'up' else False
 
         print ''
-        print 'blah'
-        cl = naivebayes(getwords)
-        #sampletrain(cl)
-        """
+        print 'TEST STUFF\n---------\n\n'
+
+        cl = naivebayes(user, getwords)
+
+        for x in range(10):
+            cl.train('blah','down')
+
+        print cl.classify('blah')
+        print cl.prob('blah','down')
+
+
+        cl.train('Nobody owns the water.','good')
+        cl.train('the quick rabbit jumps fences','good')
+        cl.train('buy pharmaceuticals now','bad')
+        cl.train('make quick money at the online casino','bad')
+        cl.train('the quick brown fox jumps','good')
+        cl.setthreshold('bad', 2.0)
+        
+
+        print ''
+        print 'dicts: %s' %user.feature_profile.unidict
+        print ''
+        print 'dircount: %s' %user.feature_profile.dircount
+
         print cl.classify('quick rabbit', default='unknown')
         print cl.classify('quick money', default='unknown')
-        cl.setthreshold('bad',3.0)
         print cl.classify('quick money', default='unknown')
-        for i in range(10):
-            sampletrain(cl)
         print cl.classify('quick money', default='unknown')
-        """
+        print ''
         
-        # Load stopwords
-        #stopwords = [str(x.word) for x in db.GqlQuery("SELECT * FROM StopWord").fetch(1000)]
-
         # Load N-Grams
         #words = getwords(story, stopwords)
         #ngrams = countwords(words)
-        
+
+        '''
+        def countwords(words):
+            # Count unigrams
+            uni_freq_dict = {}
+            for word in words:
+                uni_freq_dict[word] = uni_freq_dict.get(word,0) + 1
+
+            # Break down into bigrams
+            bigrams = []
+            for index, x in enumerate(words):
+                if (index + 1) < len(words):
+                    bigrams.append((x, words[index + 1]))
+
+            # Count bigrams
+            bi_freq_dict = {}
+            for b in bigrams: bi_freq_dict[b] = bi_freq_dict.get(b,0) + 1
+
+            return {'uni': uni_freq_dict,
+                    'bi': bi_freq_dict}
+        '''
         """
-
-        # Increment direction count
-        features.dircount.setdefault(dir, 0)
-        features.dircount[dir] += 1
-
         # Store the story key
         features.stories.setdefault(dir, [])
         features.stories[dir].append(story.key())
 
         denom = features.dircount[dir]
-        
-        
         
         for word in ngrams['uni']:
 
