@@ -36,6 +36,7 @@ class Vote(webapp.RequestHandler):
         user = users.get_current_user()
         user = db.GqlQuery("SELECT * FROM User WHERE user_id = '%s'" % user.user_id()).get()
 
+        # Instantiate the classifier
         cl = naivebayes(user, getwords)
         
         # Load story
@@ -45,15 +46,15 @@ class Vote(webapp.RequestHandler):
         # Which direction was clicked?
         dir = str(self.request.get("dir"))
 
-        # Store the story key in the right category
+        # Save the story's key
         user_stories = user.stories.setdefault(dir, [])
         user.stories[dir].append(story.key())
         user.put()
         
-        log('Training "%s" | %s' %(story.title, dir))
+        log('TRAINING:  "%s" | %s' %(story.title, dir))
         cl.train(story.title, dir)
 
-        # Threshold
+        # Set the Threshold
         #cl.setthreshold('bad', 2.0)
 
         #print cl.classify('rabbit', default='unknown')
@@ -86,90 +87,29 @@ class MainPage(webapp.RequestHandler):
             
 class ScrapeHandler(webapp.RequestHandler):
     def get(self):
-        #if not db.GqlQuery("SELECT * FROM StopWord").get():
-        #    self.loadStopWords()
-
+        if not db.GqlQuery("SELECT * FROM StopWord").get():
+            import stopwords as s
+            db.put([StopWord(word = w) for w in s.words()])
+            
         for x in range(10):
             taskqueue.add(url="/scrape_bot", params={'start': (x*100)})
 
 class ScrapeBot(webapp.RequestHandler):
     def post(self):
             base = 'http://api.thriftdb.com/api.hnsearch.com/items/_search?'
-            url = base + '%s%s%s' % ('&filter[fields][create_ts]=[NOW-24HOURS%20TO%20NOW]',
-                                     '&limit=100',
-                                     '&filter[fields][type]=submission')
+            url = base + '%s%s%s' % ('&filter[fields][create_ts]=[NOW-48HOURS%20TO%20NOW]',
+                                     '&limit=100', '&filter[fields][type]=submission')
             req = url + '&start=%s' % self.request.get("start")
             log('URL - %s' %req)
+            hn_url = "http://news.ycombinator.com/"
             response = urllib2.urlopen(req)
             content = json.loads(response.read())
             for item in content['results']:
                 if not db.GqlQuery("SELECT * FROM Node WHERE hn_id = %s" % item['item']['id']).get(): 
                     i = item['item']
-                    scraped_content = Node(hn_id = i['id'],
-                                           type = i['type'],
-                                           url = i['url'] if i['url'] else "http://news.ycombinator.com/item?id=%s" % id, 
-                                           domain = i['domain'] if i['domain'] else "http://news.ycombinator.com/",
-                                           title = i['title'],
-                                           commentcount = i['num_comments'],
-                                           username = i['username'],
-                                           points = i['points'])
+                    scraped_content = Node(hn_id = i['id'], type = i['type'],
+                                           url = i['url'] if i['url'] else hn_url + "item?id=%s" % id, 
+                                           domain = i['domain'] if i['domain'] else hn_url,
+                                           title = i['title'], commentcount = i['num_comments'],
+                                           username = i['username'], points = i['points'])
                     scraped_content.put()
-
-class LoadStopWords(webapp.RequestHandler):
-    def get(self):
-        dict = ['a', 'about', 'above', 'across', 'after', 'afterwards', 
-                'again', 'against', 'all', 'almost', 'alone', 'along', 
-                'already', 'also', 'although', 'always', 'am', 'among', 
-                'amongst', 'amoungst', 'amount', 'an', 'and', 'another', 
-                'any', 'anyhow', 'anyone', 'anything', 'anyway', 'anywhere', 
-                'are', 'around', 'as', 'at', 'back', 'be', 
-                'became', 'because', 'become', 'becomes', 'becoming', 'been', 
-                'before', 'beforehand', 'behind', 'being', 'below', 'beside', 
-                'besides', 'between', 'beyond', 'bill', 'both', 'bottom', 
-                'but', 'by', 'call', 'can', 'cannot', 'cant', 'dont',
-                'co', 'computer', 'con', 'could', 'couldnt', 'cry', 
-                'de', 'describe', 'detail', 'do', 'done', 'down', 
-                'due', 'during', 'each', 'eg', 'eight', 'either', 
-                'eleven', 'else', 'elsewhere', 'empty', 'enough', 'etc', 'even', 'ever', 'every', 
-                'everyone', 'everything', 'everywhere', 'except', 'few', 'fifteen', 
-                'fifty', 'fill', 'find', 'fire', 'first', 'five', 
-                'for', 'former', 'formerly', 'forty', 'found', 'four', 
-                'from', 'front', 'full', 'further', 'get', 'give', 
-                'go', 'had', 'has', 'hasnt', 'have', 'he', 
-                'hence', 'her', 'here', 'hereafter', 'hereby', 'herein', 
-                'hereupon', 'hers', 'herself', 'him', 'himself', 'his', 
-                'how', 'however', 'hundred', 'i', 'ie', 'if', 
-                'in', 'inc', 'indeed', 'interest', 'into', 'is', 
-                'it', 'its', 'itself', 'keep', 'last', 'latter', 
-                'latterly', 'least', 'less', 'ltd', 'made', 'many', 
-                'may', 'me', 'meanwhile', 'might', 'mill', 'mine', 
-                'more', 'moreover', 'most', 'mostly', 'move', 'much', 
-                'must', 'my', 'myself', 'name', 'namely', 'neither', 
-                'never', 'nevertheless', 'next', 'nine', 'no', 'nobody', 
-                'none', 'noone', 'nor', 'not', 'nothing', 'now', 
-                'nowhere', 'of', 'off', 'often', 'on', 'once', 
-                'one', 'only', 'onto', 'or', 'other', 'others', 
-                'otherwise', 'our', 'ours', 'ourselves', 'out', 'over', 
-                'own', 'part', 'per', 'perhaps', 'please', 'put', 
-                'rather', 're', 'same', 'see', 'seem', 'seemed', 
-                'seeming', 'seems', 'serious', 'several', 'she', 'should', 
-                'show', 'side', 'since', 'sincere', 'six', 'sixty', 
-                'so', 'some', 'somehow', 'someone', 'something', 'sometime', 
-                'sometimes', 'somewhere', 'still', 'such', 'system', 'take', 
-                'ten', 'than', 'that', 'the', 'their', 'them', 
-                'themselves', 'then', 'thence', 'there', 'thereafter', 'thereby', 
-                'therefore', 'therein', 'thereupon', 'these', 'they', 'thick', 
-                'thin', 'third', 'this', 'those', 'though', 'three', 
-                'through', 'throughout', 'thru', 'thus', 'to', 'together', 
-                'too', 'top', 'toward', 'towards', 'twelve', 'twenty', 
-                'two', 'un', 'under', 'until', 'up', 'upon', 
-                'us', 'very', 'via', 'was', 'we', 'well', 
-                'were', 'what', 'whatever', 'when', 'whence', 'whenever', 
-                'where', 'whereafter', 'whereas', 'whereby', 'wherein', 'whereupon', 
-                'wherever', 'whether', 'which', 'while', 'whither', 'who', 
-                'whoever', 'whole', 'whom', 'whose', 'why', 'will', 
-                'with', 'within', 'without', 'would', 'yet', 'you', 'your', 'yours', 
-                'yourself', 'yourselves','1','2','3','4','5','6','7','8','9','0','-',
-                '?',']',')','}','[','(','{',';','|',':']
-
-        db.put([StopWord(word = x) for x in dict])
