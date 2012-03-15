@@ -48,18 +48,11 @@ class Node(db.Model):
 class StopWord(db.Model):
     word = db.StringProperty(required=True)
 
-class Features(db.Model):
-    updated = db.DateTimeProperty(auto_now=True)
-    stories = DictProperty()
-    dircount = DictProperty()
-    unidict = DictProperty()
-    uniprob = DictProperty()
-    bidict = DictProperty()
-    biprob = DictProperty()
-    
 class User(db.Model):
     user = db.UserProperty(required=True)
     user_id = db.StringProperty(required=True)
+    updated = db.DateTimeProperty(auto_now=True)
     email = db.EmailProperty()
-    feature_profile = db.ReferenceProperty(Features)
-    
+    stories = DictProperty()
+    catcount = DictProperty()
+    fdict = DictProperty()

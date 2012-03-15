@@ -6,29 +6,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="A reader with bayesian filter for Hacker News">
     <meta name="author" content="Roger Cosseboom and Matt Barackman">
-
+    
     <!-- Le styles -->
     <link href="css/bootstrap.css" rel="stylesheet">
     <style>
       body {
-        padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
+      padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
       }
     </style>
     <link href="css/bootstrap-responsive.css" rel="stylesheet">
-
-    <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
-    <!--[if lt IE 9]>
-      <script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-
+    
     <!-- Le fav and touch icons -->
     <link rel="shortcut icon" href="img/favicon.ico">
-    <script type="text/javascript" src="js/jquery-1.7.1.js"></script> 
-    <script type="text/javascript" src="js/bootstrap.js"></script>
+
   </head>
-
   <body>
-
+    
     <div class="navbar navbar-fixed-top">
       <div class="navbar-inner">
         <div class="container">
@@ -37,74 +30,88 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </a>
-          <a class="brand" href="#">Bayesian HN Reader</a>
+          <a class="brand" href="#">Smart HN Reader</a>
           <div class="nav-collapse">
             <ul class="nav">
               <li class="active"><a href="#">Home</a></li>
               <li><a href="mailto:roger.cosseboom@gmail.com">Contact</a></li>
-							{% if user %}
-								<li><a href="{{logout_url}}">Log Out</a></li>
-								<li><a href="/scrape">Scrape</a></li>
-							{% else %}
-								<li><a href="{{logout_url}}">Log In</a></li>
-							{% endif %}
-							
+	      {% if user %}
+	         <li><a href="{{logout_url}}">Log Out</a></li>
+	         <li><a href="/scrape">Scrape</a></li>
+	      {% else %}
+	         <li><a href="{{logout_url}}">Log In</a></li>
+	      {% endif %}
             </ul>
           </div><!--/.nav-collapse -->
         </div>
       </div>
     </div>
-
-		<div class="row">		
-			<div class="span2 offset10" style="margin-top: 30px">
-			<img src="/img/logo.jpg" style="position: absolute; z-index:-1"/> 
-			</div>
-		</div>     
-		<div class="container" style="margin-top: 130px">			
+    
+    <div class="row">		
+      <div class="span2 offset10" style="margin-top: 30px">
+	<img src="/img/logo.jpg" style="position: absolute; z-index:-1"/> 
+      </div>
+    </div>     
+    <div class="container" style="margin-top: 130px">			
       <div class="row">
-				<div class="span12">
-					<h1>Welcome to the smart HN reader!</h1>
-				</div>
-			</div>
-			<div class="row">
-				<div class="span8">
-					<p> Hacker News has great content, but it's all to easy to burn through more time than you'd like reading articles you don't really care that much about. We're hoping to make our consumption of HN more streamlined and efficient, with a content filtering tailored to our specific interests. Our filter uses a simple upvote/downvote system and a Bayesian algorithm. </p>
-				</div>
-			</div>
-			{% if posts.0 %}	
-			<div class="container" style="padding-left: 25px; margin-top: 100px">	
-				<div class="row">
-					<div class="span8">
-						<h3> Relevant Results: </h3>		
-					</div>
-				</div>
-				</br>
-					{% for post in posts %}	
-							<div id="{{post}}" class="row" style="border-bottom-color: #FFFFFF;border-bottom-style: solid;border-bottom-width: 1px;padding: 20px;background-color: {% cycle #DDD,#EEE %}">
-				        <div class="row">  
-									<div class="span12">
-											<a href="/vote?key={{post.key}}&dir=up"><i class="icon-arrow-up"></i></a>
-											<a href="javascript:void(0)" onclick="purgePost($(this), '{{ post.key }}');"><i class="icon-arrow-down"></i></a>
-											<a href="{{post.url}}" style="margin-left: 5px; font-size: 20px; font-weight: 200"> {{post.title}} </a>
-										</div>
-								</div>
-								<div class="row">
-										<div class="span12" style="margin-left: 61px; color: grey">
-											<b> <a href="http://{{post.domain}}" style="color: grey"> {{post.domain}} </a>	</b>
-											| {{post.points}} points by {{post.username}} | 
-										<a href="http://news.ycombinator.com/item?id={{post.hn_id}}" style="color: grey">{{post.commentcount}} comments </a> 
-										</div>
-								</div>
-							</div>
-					{% endfor %}
-			{% endif %}
-			
-		</div> <!-- /container -->
-	    
-    <!-- Le javascript
-    ================================================== -->
-    <!-- Placed at the end of the document so the pages load faster -->
+	<div class="span12">
+	  <h1>Welcome to the smart HN reader!</h1>
+	</div>
+      </div>
+      <div class="row">
+	<div class="span8">
+	  <p> Hacker News has great content, but it's all to easy to burn through more time than you'd like reading articles you don't really care that much about. We're hoping to make our consumption of HN more streamlined and efficient, with a content filtering tailored to our specific interests. Our filter uses a simple upvote/downvote system and a Bayesian algorithm. </p>
+	</div>
+      </div>
+      {% if posts.0 %}	
+      <div class="container" style="padding-left: 25px; margin-top: 100px;margin-bottom:100px;">	
+	<div class="row">
+	  <div class="span8">
+	    <h3> Relevant Results: </h3>		
+	  </div>
+	</div>
+	</br>
 
-
+	<!-- Begin Iterating through posts -->
+	{% for post in posts %}	
+	<div id="{{post}}" class="row" style="border-bottom-color: #FFFFFF;
+					      border-bottom-style: solid;
+					      border-bottom-width: 1px;
+					      padding: 20px;
+					      background-color: {% cycle #DDD,#EEE %}">
+	  <div class="row">  
+	    <div class="span12">
+	      <div style="float:left;">
+		<a href="/vote?key={{post.key}}&dir=up">
+		  <img onmouseover='$(this).attr("src", "img/glyphicons_201_upload-hover.png")'
+		       onmouseout='$(this).attr("src", "img/glyphicons_201_upload.png")'
+		       src="img/glyphicons_201_upload.png">
+		</a>
+		<a href="javascript:void(0)" onclick="purgePost($(this), '{{ post.key }}');">
+		  <img onmouseover='$(this).attr("src", "img/glyphicons_200_download-hover.png")'
+		       onmouseout='$(this).attr("src", "img/glyphicons_200_download.png")'
+		       src="img/glyphicons_200_download.png">
+		</a>
+	      </div>
+	      <a href="{{post.url}}" style="margin-left: 15px; font-size: 24px; font-weight: 200"> {{post.title}} </a>
+	    </div>
+	  </div>
+	  <div class="row">
+	    <div class="span12" style="margin-top:-7px;margin-left: 115px; color: grey">
+	      <b> <a href="http://{{post.domain}}" style="color: grey"> {{post.domain}} </a>
+	      </b>
+	      | {{post.points}} points by {{post.username}} | 
+	      <a href="http://news.ycombinator.com/item?id={{post.hn_id}}" style="color: grey">{{post.commentcount}} comments </a> 
+	    </div>
+	  </div>
+	</div>
+	{% endfor %}
+	{% endif %}
+	
+      </div> <!-- /container -->
+      
+      <!-- javascript -->
+      <script type="text/javascript" src="js/jquery-1.7.1.js"></script> 
+      <script type="text/javascript" src="js/bootstrap.js"></script>
   </body>
 </html>

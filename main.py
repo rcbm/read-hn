@@ -1,335 +1,69 @@
-import re
+"""
+If we wanted to do pages as well as just the link title, we could:
+
+from BeautifulSoup import BeautifulSoup
+from urllib import urlopen
+soup = BeautifulSoup(urlopen("<<<url>>>").read())
+contents = ''.join(soup.findAll(text=True))
+
+to extract the text, then throw everything in the classifier
+
+"""
+"""
+user clicks down on a link, it fades out, we request a bunch of new new articles from the db.
+for each article we classify it, and if it fills the threshold we push it to the user.
+
+
+"""
+
 import os
 import datetime
 import json
 import urllib2
-import logging
-from unicodedata import normalize
-from math import log, exp, fabs
+from logging import info as log
 from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
 from google.appengine.api import users
 from google.appengine.api import taskqueue
+
+from classifier import *
 from models import *
 
-def getwords(text, stopwords):
-    # Split the words by non-alpha characters
-    words = [s.lower() for s in re.compile('\\W*').split(text)
-             if len(s) > 2 and len(s) < 20]
-
-    # Remove stop words
-    words = [w for w in words if w not in stopwords]
-
-    return dict([(w, 1) for w in words])
-
-class classifier:
-    def __init__(self, user, getfeatures):
-        self.user = user
-
-        # Load stopwords
-        self.stopwords = [str(x.word) for x in db.GqlQuery("SELECT * FROM StopWord").fetch(1000)]
-
-        # Load Existing Feature Profile
-        if not user.feature_profile:
-            self.db_features = Features()
-        else:
-            self.db_features = user.feature_profile
-
-        # Counts of feature combinations
-        self.fc = self.db_features.unidict
-
-        # Counts of categories
-        self.cc = self.db_features.dircount
-
-        # Counts of documents in each category
-        self.getfeatures = getfeatures
-
-    # Increase the count of a feature/category pair
-    def incf(self, f, cat):
-        self.fc.setdefault(f, {})
-        self.fc[f].setdefault(cat, 0)
-        self.fc[f][cat] += 1
-
-    # Increase the count of a category
-    def incc(self, cat):
-        self.cc.setdefault(cat, 0)
-        self.cc[cat] += 1
-        
-    # The number of times a feature has appeared in a category
-    def fcount(self, f, cat):
-        if f in self.fc and cat in self.fc[f]:
-            return float(self.fc[f][cat])
-        return 0.0
-
-    # The number of items in a category
-    def catcount(self, cat):
-        if cat in self.cc:
-            return float(self.cc[cat])
-        return 0
-
-    # The total number of items
-    def totalcount(self):
-        return sum(self.cc.values())
-
-    # The list of all categories
-    def categories(self):
-        return self.cc.keys()
-    
-    # Calculate weighted probabilities
-    def weightedprob(self, f, cat, prf, weight=1.0, ap=0.5):
-        # Calculate current probability
-        basicprob = prf(f,cat)
-
-        # Count the how often this feature has appeared in all categories
-        totals = sum([self.fcount(f,c) for c in self.categories()])
-
-        # Calculate the weighted average
-        bp = ((weight * ap) + (totals * basicprob)) / (weight + totals)
-        return bp
-
-    
-    # Calculate probabilities
-    def fprob(self, f, cat):
-        if self.catcount(cat) == 0: return 0
-        # The total number of times this feature appeared in this
-        # category divided by the total number of items in this category
-        return self.fcount(f,cat)/self.catcount(cat)
-    
-    def train(self, item, cat):
-        features = self.getfeatures(item, self.stopwords)
-        # Increment the count for every feature with this category
-        for f in features:
-            self.incf(f,cat)
-
-        # Increment the count for this category
-        self.incc(cat)
-        
-        # Save updated Features Set to Datastore
-        self.db_features.put()
-        if not self.user.feature_profile:
-            self.user.feature_profile = self.db_features.key()
-            self.user.put()
-
-            
-class naivebayes(classifier):
-  
-  def __init__(self, user, getfeatures):
-    classifier.__init__(self, user, getfeatures)
-    self.thresholds = {}
-  
-  def docprob(self, item, cat):
-    features = self.getfeatures(item, self.stopwords)   
-
-    # Multiply the probabilities of all the features together
-    p = 1
-    for f in features:
-        p *= self.weightedprob(f, cat, self.fprob)
-    return p
-
-  def prob(self, item, cat):
-    catprob = self.catcount(cat) / self.totalcount()
-    docprob = self.docprob(item, cat)
-    return docprob * catprob
-  
-  
-  def setthreshold(self, cat, t):
-    self.thresholds[cat] = t
-
-  def getthreshold(self, cat):
-    if cat not in self.thresholds:
-        return 1.0
-    return self.thresholds[cat]
-  
-  def classify(self, item, default=None):
-    probs = {}
-    # Find the category with the highest probability
-    max = 0.0
-    for cat in self.categories():
-      probs[cat] = self.prob(item, cat)
-      if probs[cat] > max: 
-        max = probs[cat]
-        best = cat
-
-    # Make sure the probability exceeds threshold * next best
-    for cat in probs:
-      if cat == best:
-          continue
-      if probs[cat] * self.getthreshold(best) > probs[best]:
-          return default
-    return best
-
-
-    
 class Judge(webapp.RequestHandler):
-    def get(self):
+    def post(self):
         # Load user
         user = users.get_current_user()
         user = db.GqlQuery("SELECT * FROM User WHERE user_id = '%s'" % user.user_id()).get()
 
+        cl = naivebayes(user, getwords)
+        
         # Load story
         key = self.request.get("key")
         story = db.get(key)
-        
+
         # Which direction was clicked?
         dir = str(self.request.get("dir"))
-        up = True if dir == 'up' else False
 
-        print ''
-        print 'TEST STUFF\n---------\n\n'
-
-        cl = naivebayes(user, getwords)
-
-        for x in range(10):
-            cl.train('blah','down')
-
-        print cl.classify('blah')
-        print cl.prob('blah','down')
-
-
-        cl.train('Nobody owns the water.','good')
-        cl.train('the quick rabbit jumps fences','good')
-        cl.train('buy pharmaceuticals now','bad')
-        cl.train('make quick money at the online casino','bad')
-        cl.train('the quick brown fox jumps','good')
-        cl.setthreshold('bad', 2.0)
+        # Store the story key in the right category
+        user_stories = user.stories.setdefault(dir, [])
+        user.stories[dir].append(story.key())
+        user.put()
         
+        log('Training "%s" | %s' %(story.title, dir))
+        cl.train(story.title, dir)
 
-        print ''
-        print 'dicts: %s' %user.feature_profile.unidict
-        print ''
-        print 'dircount: %s' %user.feature_profile.dircount
+        # Threshold
+        #cl.setthreshold('bad', 2.0)
 
-        print cl.classify('quick rabbit', default='unknown')
-        print cl.classify('quick money', default='unknown')
-        print cl.classify('quick money', default='unknown')
-        print cl.classify('quick money', default='unknown')
-        print ''
-        
-        # Load N-Grams
-        #words = getwords(story, stopwords)
-        #ngrams = countwords(words)
-
-        '''
-        def countwords(words):
-            # Count unigrams
-            uni_freq_dict = {}
-            for word in words:
-                uni_freq_dict[word] = uni_freq_dict.get(word,0) + 1
-
-            # Break down into bigrams
-            bigrams = []
-            for index, x in enumerate(words):
-                if (index + 1) < len(words):
-                    bigrams.append((x, words[index + 1]))
-
-            # Count bigrams
-            bi_freq_dict = {}
-            for b in bigrams: bi_freq_dict[b] = bi_freq_dict.get(b,0) + 1
-
-            return {'uni': uni_freq_dict,
-                    'bi': bi_freq_dict}
-        '''
-        """
-        # Store the story key
-        features.stories.setdefault(dir, [])
-        features.stories[dir].append(story.key())
-
-        denom = features.dircount[dir]
-        
-        for word in ngrams['uni']:
-
-            # Add unigram counts
-            self.increaseCount(unidict, word, dir)
-        
-            
-            '''
-            # Re-Calc probabilities
-            if key in uniprob:
-                features.uniprob[key] = features.uniprob[key] + log(1.0/denom)
-            else:
-                features.uniprob[key] = log(1.0/denom)
-            '''
-
-        '''
-        # Add bigram counts and recalc probabilities
-        for key in ngrams['bi']:
-            bidict[key] = bidict.get(key,0) + 1
-            if key in biprob:
-                biprob[key] = biprob[key] + log(1.0/denom)
-            else:
-                biprob[key] = log(1.0/denom)
-        '''
-        
-        # Save updated Features Set to Datastore
-        features.put()
-        if not user.feature_profile:
-            user.feature_profile = features.key()
-            user.put()
-        
-        print ''
-        print 'COUNTS'
-        print features.dircount
-
-        print ''
-        print 'STORIES'
-        print [(dir, len(dir)) for dir in features.stories]
-        
-        print ''
-        print 'DICTS'
-        print '-------------------------\n'
-        for i in features.unidict:
-            print i, unidict[i]
-
-        print ''
-        print 'PROBABILITIES'
-        print '-------------------------\n'
-        for i in features.uniprob:
-            print i, uniprob[i]
-        print ''
-
-        #for key,value in features.down_bigram_prob.iteritems():
-        #    print '%s: %s' %(key, value)
-        #print '\n'
-
-        #for key,value in features.up_bigram_prob.iteritems():
-        #    print '%s: %s' %(key, value)
-        #print ''
-
+        #print cl.classify('rabbit', default='unknown')
+        #print cl.classify('money', default='unknown')
+        #print cl.classify('money', default='unknown')
+        #print cl.classify('money', default='unknown')
         #self.redirect('/')
-        """ 
+        
+        
 class MainPage(webapp.RequestHandler):
-    '''
-    def classify(self, features):
-        posts = db.GqlQuery("SELECT * FROM Node ORDER BY points DESC LIMIT 100")
-        good_posts = []
-        for post in posts:
-            ngrams = getwords(post)
-            downprob = 0.0
-            upprob = 0.0
-            for n in ngrams['uni']:
-                if n in features.up_unigram_prob:
-                    upprob += features.up_unigram_prob[n]
-                    #self.response.out.write('UP: %s : %s<BR>' %(n, features.up_unigram_prob[n]))
-                if n in features.down_unigram_prob:
-                    downprob += features.down_unigram_prob[n]
-                    #self.response.out.write('DOWN: %s : %s<BR>' %(n, features.down_unigram_prob[n]))
-
-            ##
-            # Weight bigrams 2x as much as unigrams?
-            ##
-                    
-            if fabs(downprob) - fabs(upprob) <= 0:
-                if fabs(upprob) > 0:
-                    self.response.out.write('<i><b>%s</b></i><br>' %post.title)
-                    good_posts.append(post)
-                else:
-                    self.response.out.write('%s<br>' %post.title)
-            else:
-                self.response.out.write('<font color="#ddd">%s</font><br>' %post.title)
-            #self.response.out.write('ID: %s | UP: %s | DOWN: %s<br>' %(post.hn_id, upprob, downprob))
-        #return good_posts
-    '''
     def get(self):
         temp_user = users.get_current_user()
         if temp_user:
@@ -341,11 +75,7 @@ class MainPage(webapp.RequestHandler):
                 new_user.put()
                 user = new_user                
 
-            #if not user.feature_profile:
-            posts = db.GqlQuery("SELECT * FROM Node ORDER BY points DESC LIMIT 100")
-            #else:
-            #    posts = self.classify(user.feature_profile)
-                
+            posts = db.GqlQuery("SELECT * FROM Node ORDER BY points DESC LIMIT 10")
             template_values = {'user': users.get_current_user(),
                                'logout_url': users.create_logout_url("/"),
                                'posts': posts}
@@ -365,7 +95,7 @@ class Scrape(webapp.RequestHandler):
                                      '&filter[fields][type]=submission')
             for x in range(10):
                 req = url + '&start=%s' % (x * 100)
-                logging.info('URL - %s' %req)
+                log('URL - %s' %req)
                 response = urllib2.urlopen(req)
                 content = json.loads(response.read())
                 for item in content['results']:

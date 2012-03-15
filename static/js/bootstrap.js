@@ -19,10 +19,12 @@
 
  function purgePost(div, key) {
 
-     window.location = '/vote?key='+ key + "&dir=down";
-     //$.ajax({url: '/vote?key='+ key + "&dir=down", context: document.body, type: 'POST'});
-     //div.parent().parent().parent().fadeOut("slow");
-     //return false
+     //window.location = '/vote?key='+ key + "&dir=down";
+     $.ajax({url: '/vote?key='+ key + "&dir=down", context: document.body, type: 'POST'});
+     entry = div.parent().parent().parent().parent();
+     entry.fadeOut();
+     entry.fadeIn();
+     return false
 
  }
 
