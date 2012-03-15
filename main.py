@@ -18,7 +18,7 @@ for each article we classify it, and if it fills the threshold we push it to the
 
 import os
 import datetime
-import json
+import simplejson as json
 import urllib2
 from logging import info as log
 from google.appengine.ext import db
