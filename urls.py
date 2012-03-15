@@ -7,8 +7,10 @@ from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 
 application = webapp.WSGIApplication([('/', MainPage),
-                                      ('/scrape', Scrape),
-                                      ('/vote', Judge)],
+                                      ('/scrape', ScrapeHandler),
+                                      ('/scrape_bot', ScrapeBot),
+                                      ('/stopwords', LoadStopWords),
+                                      ('/vote', Vote)],
                                      debug=True)
 
 def main():

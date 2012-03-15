@@ -30,7 +30,7 @@ from google.appengine.api import taskqueue
 from classifier import *
 from models import *
 
-class Judge(webapp.RequestHandler):
+class Vote(webapp.RequestHandler):
     def post(self):
         # Load user
         user = users.get_current_user()
@@ -84,42 +84,39 @@ class MainPage(webapp.RequestHandler):
         else:
             self.redirect(users.create_login_url(self.request.uri))
             
-class Scrape(webapp.RequestHandler):
+class ScrapeHandler(webapp.RequestHandler):
     def get(self):
-        self.loadStopWords()
-        user = users.get_current_user()
-        if user:
+        #if not db.GqlQuery("SELECT * FROM StopWord").get():
+        #    self.loadStopWords()
+
+        for x in range(10):
+            taskqueue.add(url="/scrape_bot", params={'start': (x*100)})
+
+class ScrapeBot(webapp.RequestHandler):
+    def post(self):
             base = 'http://api.thriftdb.com/api.hnsearch.com/items/_search?'
             url = base + '%s%s%s' % ('&filter[fields][create_ts]=[NOW-24HOURS%20TO%20NOW]',
                                      '&limit=100',
                                      '&filter[fields][type]=submission')
-            for x in range(10):
-                req = url + '&start=%s' % (x * 100)
-                log('URL - %s' %req)
-                response = urllib2.urlopen(req)
-                content = json.loads(response.read())
-                for item in content['results']:
-                    if not db.GqlQuery("SELECT * FROM Node WHERE hn_id = %s" % item['item']['id']).get(): 
-                        i = item['item']
-                        scraped_content = Node(hn_id = i['id'],
-                                               type = i['type'],
-                                               url = i['url'] if i['url'] else "http://news.ycombinator.com/item?id=%s" % id, 
-                                               domain = i['domain'] if i['domain'] else "http://news.ycombinator.com/",
-                                               title = i['title'],
-                                               commentcount = i['num_comments'],
-                                               username = i['username'],
-                                               points = i['points'],
-                                               #timestamp = i['create_ts'],
-                                               )
-                        scraped_content.put()
-                
-                            
-        else: 
-            self.redirect(users.create_login_url(self.request.uri))
-        
-        self.redirect('/')
+            req = url + '&start=%s' % self.request.get("start")
+            log('URL - %s' %req)
+            response = urllib2.urlopen(req)
+            content = json.loads(response.read())
+            for item in content['results']:
+                if not db.GqlQuery("SELECT * FROM Node WHERE hn_id = %s" % item['item']['id']).get(): 
+                    i = item['item']
+                    scraped_content = Node(hn_id = i['id'],
+                                           type = i['type'],
+                                           url = i['url'] if i['url'] else "http://news.ycombinator.com/item?id=%s" % id, 
+                                           domain = i['domain'] if i['domain'] else "http://news.ycombinator.com/",
+                                           title = i['title'],
+                                           commentcount = i['num_comments'],
+                                           username = i['username'],
+                                           points = i['points'])
+                    scraped_content.put()
 
-    def loadStopWords(self):
+class LoadStopWords(webapp.RequestHandler):
+    def get(self):
         dict = ['a', 'about', 'above', 'across', 'after', 'afterwards', 
                 'again', 'against', 'all', 'almost', 'alone', 'along', 
                 'already', 'also', 'although', 'always', 'am', 'among', 

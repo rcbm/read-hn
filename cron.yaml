@@ -1,4 +1,4 @@
 cron:
-- description: check for any upcoming events and send out e-mails.
+- description: check for new posts
   url: /scrape
   schedule: every 60 minutes
