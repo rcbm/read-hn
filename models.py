@@ -2,6 +2,10 @@ import pickle
 from google.appengine.ext import db
 from google.appengine.api import users
 
+class DictModel(db.Model):
+    def to_dict(self):
+       return dict([(p, unicode(getattr(self, p))) for p in self.properties()])
+
 class DictProperty(db.Property):
   data_type = dict
 
@@ -29,7 +33,8 @@ class DictProperty(db.Property):
   def empty(self, value):
     return value is None
   
-class Node(db.Model):
+
+class Node(DictModel):
     hn_id = db.IntegerProperty(required=True)
     type = db.StringProperty(required=True)
     url = db.StringProperty(required=False)

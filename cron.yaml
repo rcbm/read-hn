@@ -1,4 +1,4 @@
 cron:
 - description: check for new posts
   url: /scrape
-  schedule: every 60 minutes
+  schedule: every 120 minutes

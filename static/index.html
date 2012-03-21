@@ -82,27 +82,26 @@
 	  <div class="row">  
 	    <div class="span12">
 	      <div style="float:left;">
-		<a href="/vote?key={{post.key}}&dir=up">
+		<a href="javascript:void(0)" onclick="purgePost($(this), '{{ post.key }}', 'up');">
 		  <img onmouseover='$(this).attr("src", "img/glyphicons_201_upload-hover.png")'
 		       onmouseout='$(this).attr("src", "img/glyphicons_201_upload.png")'
 		       src="img/glyphicons_201_upload.png">
 		</a>
-		<a href="javascript:void(0)" onclick="purgePost($(this), '{{ post.key }}');">
+		<a href="javascript:void(0)" onclick="purgePost($(this), '{{ post.key }}', 'down');">
 		  <img onmouseover='$(this).attr("src", "img/glyphicons_200_download-hover.png")'
 		       onmouseout='$(this).attr("src", "img/glyphicons_200_download.png")'
 		       src="img/glyphicons_200_download.png">
 		</a>
 	      </div>
-	      <a href="{{post.url}}" style="margin-left: 15px; font-size: 24px; font-weight: 200"> {{post.title}} </a>
+	      <a class="title" href="{{post.url}}" style="margin-left: 15px; font-size: 24px; font-weight: 200"> {{post.title}} </a>
 	    </div>
 	  </div>
 	  <div class="row">
 	    <div class="span12" style="margin-top:-7px;margin-left: 115px; color: grey">
-	      <b> <a href="http://{{post.domain}}" style="color: grey"> {{post.domain}} </a>
-	      </b>
-	      | {{post.points}} points by {{post.username}} | 
-	      <a href="http://news.ycombinator.com/item?id={{post.hn_id}}" style="color: grey">{{post.commentcount}} comments </a> 
-	    </div>
+	      <b> <a class="domain-link" href="http://{{post.domain}}" style="color: grey"> {{post.domain}} </a> </b>
+		| <span class="points">{{post.points}}</span> points by <span class="author">{{post.username}}</span> | 
+		<a class="hn-link" href="http://news.ycombinator.com/item?id={{post.hn_id}}" style="color: grey">{{post.commentcount}} comments </a> 
+	      </div>
 	  </div>
 	</div>
 	{% endfor %}

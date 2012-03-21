@@ -10,9 +10,12 @@ to extract the text, then throw everything in the classifier
 
 """
 """
+User clicks an arrow, key + direction are ajax'd to /vote. vote trains the classifier, then 
+calls Reload which sends info back out through ajax to the page
+"""
+"""
 user clicks down on a link, it fades out, we request a bunch of new new articles from the db.
 for each article we classify it, and if it fills the threshold we push it to the user.
-
 
 """
 
@@ -31,13 +34,45 @@ from classifier import *
 from models import *
 
 class Vote(webapp.RequestHandler):
-    def post(self):
+    def __init__(self):
+
         # Load user
         user = users.get_current_user()
-        user = db.GqlQuery("SELECT * FROM User WHERE user_id = '%s'" % user.user_id()).get()
+        self.user = db.GqlQuery("SELECT * FROM User WHERE user_id = '%s'" % user.user_id()).get()
 
         # Instantiate the classifier
-        cl = naivebayes(user, getwords)
+        self.cl = naivebayes(self.user, getwords)
+
+        self.cl.setthreshold('bad', 2.0)
+        
+    def reload(self, user):
+        '''
+        pull out a bunch of entries. classify each one. take the strongest
+        one corresponding with 'up' and display it.
+
+        make sure not to pull any that have already been voted on, OR
+        are already being displayed.
+        '''
+
+        count = 0
+        down = True
+        while down and count < 100:
+            #print count
+            count += 10
+            posts = db.GqlQuery("SELECT * FROM Node ORDER BY created, points ASC").fetch(100)
+            for p in posts:
+                cat = self.cl.classify(p.title, default='unknown')
+                log(cat)
+                if cat == 'up':
+                    log('****FOUND ONE**** %s' %p.title)
+                    return p
+        
+        log('couldnt find anything')
+        return db.GqlQuery("SELECT * FROM Node ORDER BY created, points ASC").get()
+        #return story
+    
+    def get(self):
+        user = self.user
         
         # Load story
         key = self.request.get("key")
@@ -52,10 +87,17 @@ class Vote(webapp.RequestHandler):
         user.put()
         
         log('TRAINING:  "%s" | %s' %(story.title, dir))
-        cl.train(story.title, dir)
+        self.cl.train(story.title, dir)
 
+        newstory = self.reload(user).to_dict()
+        log(newstory)
+        self.response.out.write(json.dumps(newstory))
+
+
+        
+        
+        #self.response.out.write(
         # Set the Threshold
-        #cl.setthreshold('bad', 2.0)
 
         #print cl.classify('rabbit', default='unknown')
         #print cl.classify('money', default='unknown')
@@ -84,6 +126,7 @@ class MainPage(webapp.RequestHandler):
             self.response.out.write(template.render('static/index.html', template_values))                                                                   
         else:
             self.redirect(users.create_login_url(self.request.uri))
+
             
 class ScrapeHandler(webapp.RequestHandler):
     def get(self):
@@ -94,6 +137,7 @@ class ScrapeHandler(webapp.RequestHandler):
         for x in range(10):
             taskqueue.add(url="/scrape_bot", params={'start': (x*100)})
 
+            
 class ScrapeBot(webapp.RequestHandler):
     def post(self):
             base = 'http://api.thriftdb.com/api.hnsearch.com/items/_search?'

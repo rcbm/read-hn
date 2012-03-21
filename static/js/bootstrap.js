@@ -17,14 +17,31 @@
  * limitations under the License.
  * ========================================================== */
 
- function purgePost(div, key) {
+function purgePost(div, key, dir) {
 
      //window.location = '/vote?key='+ key + "&dir=down";
-     $.ajax({url: '/vote?key='+ key + "&dir=down", context: document.body, type: 'POST'});
      entry = div.parent().parent().parent().parent();
-     entry.fadeOut();
-     entry.fadeIn();
-     return false
+     entry.fadeOut("slow");
+     $.getJSON("/vote?",
+	       { key: key,
+		 dir: dir,
+		 format: "json"
+	       }, function(data) {
+		    hn_url = 'http://news.ycombinator.com/item?id=';
+		    entry.css("background-color", "#FFF");
+		    entry.css("border-bottom-color", "#AAA");
+		    entry.find(".title").html(data['title']);
+		    entry.find(".title").attr('href', data['url']);
+		    entry.find(".domain-link").html(data['domain']);
+		    entry.find(".domain-link").attr('href', data['domain']);
+		    entry.find(".author").html(data['username']);
+		    entry.find(".points").html(data['points']);
+		    entry.find(".hn-link").attr('href', hn_url + data['hn_id']);
+		    entry.find(".hn-link").html(data['commentcount'] + ' comments');
+	       });
+
+     entry.fadeIn("slow");
+     //return false
 
  }
 
