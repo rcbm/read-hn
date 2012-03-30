@@ -1,3 +1,6 @@
+'''
+Primarily from Toby Segaran's book Programming Collective Intelligence
+'''
 import re
 from logging import info as log
 from google.appengine.ext import db

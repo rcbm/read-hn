@@ -21,12 +21,25 @@ function purgePost(div, key, dir) {
 
      //window.location = '/vote?key='+ key + "&dir=down";
      entry = div.parent().parent().parent().parent();
+
+     // Create array of existing keys to send in the ajax request
+     // (so as not to send one thats already being shown)
+     
+     post_ids = $.makeArray( $('.post').each( function(i) {
+		 return $(this).attr('id');
+	     }));
+     
+     //post_ids.each(alert($(this)));
+     //return;
+    var test = ['blah','burp']
      entry.fadeOut("slow");
      $.getJSON("/vote?",
-	       { key: key,
-		 dir: dir,
-		 format: "json"
-	       }, function(data) {
+	                   { key: key,
+			     dir: dir,
+			     test: test
+			       //posts: post_ids,
+			   },
+	       function(data) {
 		    hn_url = 'http://news.ycombinator.com/item?id=';
 		    entry.css("background-color", "#FFF");
 		    entry.css("border-bottom-color", "#AAA");

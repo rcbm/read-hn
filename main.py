@@ -81,6 +81,8 @@ class Vote(webapp.RequestHandler):
         # Which direction was clicked?
         dir = str(self.request.get("dir"))
 
+        log("WHOOOOOOOOOOOOOOOOOOOOOOOA %s"  %len(self.request.get("test")))
+            
         # Save the story's key
         user_stories = user.stories.setdefault(dir, [])
         user.stories[dir].append(story.key())
